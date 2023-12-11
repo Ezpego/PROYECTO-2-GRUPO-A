@@ -23,7 +23,7 @@ await db.query(`
 CREATE TABLE users (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(30) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50),
     dni VARCHAR(20),
     birth_date DATE,
     email VARCHAR(50) NOT NULL UNIQUE,
@@ -31,7 +31,7 @@ CREATE TABLE users (
         CHAR_LENGTH(password) >=8 AND 
         password REGEXP '[A-Z]' AND
         password REGEXP '[0-9]'
-        ),
+        ) NOT NULL,
     phone_number VARCHAR(20),
     profile_image_url VARCHAR(50),
     isEnable BOOLEAN DEFAULT TRUE,
