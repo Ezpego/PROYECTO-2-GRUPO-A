@@ -1,5 +1,5 @@
-import "dotenv/config.js";
-import connectDB from "./create-pool.js";
+import 'dotenv/config.js';
+import connectDB from './create-pool.js';
 
 const db = connectDB();
 
@@ -10,16 +10,15 @@ console.log(process.env.MYSQL_USER);
 console.log(process.env.MYSQL_PASS);
 console.log(process.env.MYSQL_DB);
 
-
-console.log("Limpiando base de datos vieja...");
+console.log('Limpiando base de datos vieja...');
 await db.query(`DROP DATABASE IF EXISTS ${DB_NAME}`);
 
-console.log("Creando base de datos...");
+console.log('Creando base de datos...');
 await db.query(`CREATE DATABASE ${DB_NAME}`);
 
 await db.query(`USE ${DB_NAME}`);
 
-console.log("Creando tabla users...");
+console.log('Creando tabla users...');
 await db.query(`
 CREATE TABLE users (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -35,6 +34,7 @@ CREATE TABLE users (
         ),
     phone_number VARCHAR(20),
     profile_image_url VARCHAR(50),
+    isEnable BOOLEAN DEFAULT TRUE,
     isAdministrator BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -42,7 +42,7 @@ CREATE TABLE users (
     );
 `);
 
-console.log("Creando tabla typology...");
+console.log('Creando tabla typology...');
 await db.query(`
 CREATE TABLE typology (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -52,7 +52,7 @@ CREATE TABLE typology (
     );
 `);
 
-console.log("Creando tabla muscle group...");
+console.log('Creando tabla muscle group...');
 await db.query(`
 CREATE TABLE muscle_group (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -62,7 +62,7 @@ CREATE TABLE muscle_group (
     );
 `);
 
-console.log("Creando tabla exercises...");
+console.log('Creando tabla exercises...');
 await db.query(`
 CREATE TABLE exercises (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -72,14 +72,16 @@ CREATE TABLE exercises (
     difficulty_level VARCHAR(20) CHECK (
         difficulty_level IN ('Low', 'Medium', 'High')
         ) NOT NULL,
-    created_by VARCHAR(30) NOT NULL,
-    updated_by VARCHAR(30) NOT NULL,
+    created_by INT UNSIGNED,
+    updated_by INT UNSIGNED,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users (id),
+    FOREIGN KEY (updated_by) REFERENCES users (id)
     );
 `);
 
-console.log("Creando tabla typology selection...");
+console.log('Creando tabla typology selection...');
 await db.query(`
 CREATE TABLE typology_selection (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -90,7 +92,7 @@ CREATE TABLE typology_selection (
     );
 `);
 
-console.log("Creando tabla muscle group selection...");
+console.log('Creando tabla muscle group selection...');
 await db.query(`
 CREATE TABLE muscle_group_selection (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -101,41 +103,29 @@ CREATE TABLE muscle_group_selection (
     );
 `);
 
-console.log("Creando tabla likes...");
+console.log('Creando tabla likes...');
 await db.query(`
 CREATE TABLE likes (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     user_id INT UNSIGNED,
     exercises_id INT UNSIGNED,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (exercises_id) REFERENCES exercises(id)
     );
 `);
 
-console.log("Creando la tabla favourites...");
+console.log('Creando la tabla favourites...');
 await db.query(`
 CREATE TABLE favourites (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     user_id INT UNSIGNED,
+    exercise_id INT UNSIGNED,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (exercise_id) REFERENCES exercises(id)
     );
 `);
-
-console.log("Creando la tabla selection...");
-await db.query(`
-CREATE TABLE selection (
-    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    exercises_id INT UNSIGNED,
-    favourites_id INT UNSIGNED,
-    comments TEXT,
-    FOREIGN KEY (exercises_id) REFERENCES exercises(id),
-    FOREIGN KEY (favourites_id) REFERENCES favourites(id)
-    );
-`);
-
 
 await db.end();
