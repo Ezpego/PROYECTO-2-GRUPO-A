@@ -27,7 +27,7 @@ CREATE TABLE users (
     dni VARCHAR(20),
     birth_date DATE,
     email VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(20) CHECK(
+    password VARCHAR(60) CHECK(
         CHAR_LENGTH(password) >=8 AND 
         password REGEXP '[A-Z]' AND
         password REGEXP '[0-9]'
