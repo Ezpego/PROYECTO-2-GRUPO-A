@@ -1,5 +1,8 @@
 import mysql from "mysql2/promise.js";
 
+
+console.log("CONECTANDO CON LA BASE DE DATOS");
+
 function createConnectionPool(dbName) {
   const connectionPool = mysql.createPool({
     host: process.env.MYSQL_HOST,
