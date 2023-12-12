@@ -34,7 +34,7 @@ CREATE TABLE users (
         ) NOT NULL,
     phone_number VARCHAR(20),
     profile_image_url VARCHAR(50),
-    isEnable BOOLEAN DEFAULT TRUE,
+    isEnabled BOOLEAN DEFAULT TRUE,
     isAdministrator BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -46,9 +46,7 @@ console.log('Creando tabla typology...');
 await db.query(`
 CREATE TABLE typology (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    name VARCHAR(50) NOT NULL
     );
 `);
 
@@ -56,9 +54,7 @@ console.log('Creando tabla muscle group...');
 await db.query(`
 CREATE TABLE muscle_group (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    name VARCHAR(50) NOT NULL
     );
 `);
 
@@ -122,7 +118,6 @@ CREATE TABLE favourites (
     user_id INT UNSIGNED,
     exercise_id INT UNSIGNED,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (exercise_id) REFERENCES exercises(id)
     );
