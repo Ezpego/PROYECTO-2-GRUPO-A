@@ -32,8 +32,11 @@ app.post('/users/register', async (req, res) => {
   try {
     //procedemos a validar los datos que nos llegan
     email = email.trim();
+    console.log(email);
     name = name.trim();
+    console.log(name);
     password = password.trim();
+    console.log(password);
     if (!email) {
       const err = new Error('EMAIL IS REQUIRED');
       err.httpStatus = 400;
