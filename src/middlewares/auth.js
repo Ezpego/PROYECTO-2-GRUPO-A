@@ -7,9 +7,10 @@ export async function authMiddleware(req, res, next) {
     try {
       const { id } = jwt.verify(token, process.env.JWT_SECRET);
       const [[user]] = await db.execute(
-        `SELECT id,name, email  FROM users WHERE id = ? AND isEnabled = TRUE LIMIT  1`,
+        `SELECT id,name, email, isAdministrator  FROM users WHERE id = ? AND isEnabled = TRUE LIMIT  1`,
         [id]
       );
+
 
       req.currentUser = user;
     } catch (err) {

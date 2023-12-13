@@ -62,7 +62,7 @@ console.log('Creando tabla exercises...');
 await db.query(`
 CREATE TABLE exercises (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(30) NOT NULL,
+    name VARCHAR(30) NOT NULL UNIQUE,
     description VARCHAR(200) NOT NULL,
     image_url VARCHAR(50),
     difficulty_level VARCHAR(20) CHECK (
