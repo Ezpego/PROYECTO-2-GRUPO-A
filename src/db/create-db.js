@@ -33,9 +33,10 @@ CREATE TABLE users (
         password REGEXP '[0-9]'
         ) NOT NULL,
     phone_number VARCHAR(20),
-    profile_image_url VARCHAR(50),
+    profile_image_url VARCHAR(200),
     isEnabled BOOLEAN DEFAULT TRUE,
     isAdministrator BOOLEAN DEFAULT FALSE,
+    reactivation_code VARCHAR(10),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     
@@ -63,7 +64,7 @@ await db.query(`
 CREATE TABLE exercises (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(30) NOT NULL UNIQUE,
-    description VARCHAR(65000) NOT NULL,
+    description VARCHAR(3000) NOT NULL,
     image_url VARCHAR(200),
     difficulty_level VARCHAR(20) CHECK (
         difficulty_level IN ('Low', 'Medium', 'High')
@@ -127,4 +128,4 @@ await db.end();
 
 // ACTUAIZACIONES  EN BASE DE DATOS
 // fila tabla exercises  se aplica los caracteres de VARCHAR 50 a 200
-// tipo para descripcion de VARCHAR(200) a VARCHAR(65000)
+// tipo para descripcion de VARCHAR(200) a VARCHAR(3000)
