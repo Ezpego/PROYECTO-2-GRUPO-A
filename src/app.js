@@ -262,7 +262,7 @@ app.get("/prueba", (req, res) => {
 
 // REGISTRO DE UN NUEVO EJERCICIO
 app.use(fileUpload());
-// !Añadir la misma logica para verificar el nombre del ejercicio
+
 app.post("/exercises", async (req, res) => {
   console.log("cuerpo:", req.body);
   try {
@@ -276,34 +276,41 @@ app.post("/exercises", async (req, res) => {
       err.httpStatus = 403;
       throw err;
     }
-    // Obtenemos del 'body' los campos de la tabla exercises
-
-    const photo = req.files?.prueba;
-    const address = "photos";
-    const URL = await subidaPrueba(photo, address);
-
-    // let URL = null;
-    // if (photo) {
-    //     const fileExtension = path.extname(photo.name);
-    //     const randomFileName = crypto.randomUUID();
-    //     const newFilePath = `${randomFileName}${fileExtension}`;
-    //     await photo.mv(path.join(PHOTOS_DIR, newFilePath));
-    //     URL = `${SERVER_HOST}/photos/${newFilePath}`;
-    // }
 
     let { name, description, difficulty_level } = req.body;
     // Verificamos los datos recibidos
     console.log("Dato 1: ", name);
     console.log("Dato 2: ", description);
     console.log("Dato 3: ", difficulty_level);
-    console.log("Dato 4: ", URL);
-    if (!name || !description || !difficulty_level || !URL) {
+
+    const photo = req.files?.prueba;
+
+    if (!name || !description || !difficulty_level || !photo) {
       const err = new Error(
         "Incomplete data: Name, description and difficulty level are required"
       );
       err.httpStatus = 400;
       throw err;
     }
+
+    const [[existingExerciseWithSameName]] = await db.execute(
+      `
+      SELECT * FROM exercises WHERE name = ? LIMIT 1`,
+      [name]
+    );
+
+    if (
+      existingExerciseWithSameName &&
+      existingExerciseWithSameName.name === name
+    ) {
+      const err = new Error("Exercise name already exists");
+      err.httpStatus = 400;
+      throw err;
+    }
+
+    const address = "photos";
+    const URL = await subidaPrueba(photo, address);
+    console.log(URL);
 
     // Inserción de un nuevo ejercicio
     await db.execute(
@@ -505,10 +512,6 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
       throw err;
     }
 
-    // Obtenemos los datos originales del usuario (Para el caso en que quiera cambiar el nombre y generemos un nuevo TOKEN)
-    // let updateUserData = {...currentUser};
-    // let tokenShouldBeUpdated = false;
-
     // Construir la consulta de actualización según los datos proporcionados
     let updateQuery = "UPDATE users SET ";
     let updateValues = [];
@@ -518,11 +521,10 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
       err.httpStatus = 400;
       throw err;
     }
-    // && name !== currentUser.name (ESTO IRIA DENTRO DEL PRIMER IF)
+
     if (name) {
       name = name.trim();
-      // updateUserData.name = name;
-      // tokenShouldBeUpdated = true;
+
       updateQuery += "name = ?, ";
       updateValues.push(name);
     }
@@ -591,23 +593,6 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
     updateValues.push(userId);
 
     await db.execute(updateQuery, updateValues);
-
-    // if (tokenShouldBeUpdated){
-    //   const token = jwt.sign(
-    //     {
-    //       id: updateUserData.id,
-    //       name: updateUserData.name,
-    //     },
-    //     process.env.JWT_SECRET,
-    //     {
-    //       expiresIn: '7d',
-    //     }
-    //   );
-
-    //   res.status(200).json({ token });
-    //   return;
-
-    // }
 
     res.status(200).json({ message: "Profile updated successfully" });
   } catch (err) {
