@@ -15,83 +15,84 @@ function generateReactivationCode() {
 const app = express();
 
 app.listen(PORT, () => {
-  console.log(`Server is running on ${SERVER_HOST}`);
+    console.log(`Server is running on ${SERVER_HOST}`);
 
-  // Verificar la conexión a la base de datos aquí
-  db.execute('SELECT 1')
-    .then(() => console.log('Connected to database successfully!'))
-    .catch((err) =>
-      console.error('Error connecting to database:', err.message)
-    );
+    // Verificar la conexión a la base de datos aquí
+    db.execute("SELECT 1")
+        .then(() => console.log("Connected to database successfully!"))
+        .catch((err) =>
+            console.error("Error connecting to database:", err.message)
+        );
 });
 
 app.use(express.json());
 
-app.post('/users/register', async (req, res) => {
-  let { email, password, name } = req.body;
-  try {
-    //procedemos a validar los datos que nos llegan
-    email = email.trim();
-    console.log(email);
-    name = name.trim();
-    console.log(name);
-    password = password.trim();
-    console.log(password);
-    if (!email) {
-      const err = new Error('EMAIL IS REQUIRED');
-      err.httpStatus = 400;
-      throw err;
-    }
-    if (!name) {
-      const err = new Error('NAME IS REQUIRED');
-      err.httpStatus = 400;
-      throw err;
-    }
-    if (!password) {
-      const err = new Error('PASSWORD IS REQUIRED');
-      err.httpStatus = 400;
-      throw err;
-    }
+app.post("/users/register", async (req, res) => {
+    let { email, password, name } = req.body;
+    try {
+        //procedemos a validar los datos que nos llegan
+        email = email.trim();
+        console.log(email);
+        name = name.trim();
+        console.log(name);
+        password = password.trim();
+        console.log(password);
+        if (!email) {
+            const err = new Error("EMAIL IS REQUIRED");
+            err.httpStatus = 400;
+            throw err;
+        }
+        if (!name) {
+            const err = new Error("NAME IS REQUIRED");
+            err.httpStatus = 400;
+            throw err;
+        }
+        if (!password) {
+            const err = new Error("PASSWORD IS REQUIRED");
+            err.httpStatus = 400;
+            throw err;
+        }
 
-    if (
-      !password ||
-      password.length < 8 ||
-      !/[A-Z]/.test(password) ||
-      !/[0-9]/.test(password)
-    ) {
-      throw new Error('PASSWORD_DOES_NOT_MATCH_REQUIREMENTS');
-    }
-    console.log('SELECT * FROM users WHERE email = ?', email);
-    const [[maybeUserWithEmail]] = await db.execute(
-      `SELECT * FROM users WHERE email = ? LIMIT 1`,
-      [email]
-    );
-    console.log('Resultado de la consulta:', maybeUserWithEmail);
+        if (
+            password.length < 8 ||
+            !/[A-Z]/.test(password) ||
+            !/[0-9]/.test(password)
+        ) {
+            const err = new Error("PASSWORD_DOES_NOT_MATCH_REQUIREMENTS");
+            err.httpStatus = 400;
+            throw err;
+        }
+        console.log("SELECT * FROM users WHERE email = ?", email);
+        const [[maybeUserWithEmail]] = await db.execute(
+            `SELECT * FROM users WHERE email = ? LIMIT 1`,
+            [email]
+        );
+        console.log("Resultado de la consulta:", maybeUserWithEmail);
 
-    if (!maybeUserWithEmail) {
-      // No se encontró ningún usuario con este correo electrónico, proceder con la inserción
-      const hashedPassword = await bcrypt.hash(password, 12);
-      console.log('Insertando nuevo usuario:', name, email);
-      await db.execute(
-        `INSERT INTO users(name, email, password) 
+        if (!maybeUserWithEmail) {
+            // No se encontró ningún usuario con este correo electrónico, proceder con la inserción
+            const hashedPassword = await bcrypt.hash(password, 12);
+            console.log("Insertando nuevo usuario:", name, email);
+            await db.execute(
+                `INSERT INTO users(name, email, password) 
         VALUES(?,?,?)`,
-        [name, email, hashedPassword]
-      );
-      console;
-      console.log('Usuario insertado correctamente:', name, email);
-      res.status(200).send();
-    } else {
-      // El correo electrónico ya está en uso
-      const err = new Error('EMAIL IN USE');
-      err.httpStatus = 400;
-      throw err;
+                [name, email, hashedPassword]
+            );
+            console;
+            console.log("Usuario insertado correctamente:", name, email);
+            res.status(200).send();
+        } else {
+            // El correo electrónico ya está en uso
+            const err = new Error("EMAIL IN USE");
+            err.httpStatus = 400;
+            throw err;
+        }
+    } catch (err) {
+        res.status(err.httpStatus || 500).json({
+            status: "error",
+            message: err.message,
+        });
     }
-  } catch (err) {
-    res.status(err.httpStatus || 500).json({
-      status: 'error',
-      message: err.message,
-    });
-  }
 });
 
 
@@ -99,19 +100,51 @@ app.post('/users/register', async (req, res) => {
 // JSON TOKEN
 // --------------------------------
 
-app.post('/users/login', async (req, res) => {
-  try {
+app.post("/users/login", async (req, res) => {
     const { email, password } = req.body;
+    try {
+        // verificar??
 
-    const [[isUser]] = await db.execute(
-      `SELECT * FROM users WHERE email = ? LIMIT 1`,
-      [email]
-    );
+        const [[isUser]] = await db.execute(
+            `SELECT * FROM users WHERE email = ? LIMIT 1`,
+            [email]
+        );
 
-    if (!isUser) {
-      const err = new Error('error credentials');
-      err.httpStatus = 400;
-      throw err;
+        if (!isUser) {
+              const err = new Error("error credentials");
+            err.httpStatus = 400;
+            throw err;
+        }
+
+        const doesPasswordMatch = await bcrypt.compare(
+            password,
+            isUser.password
+        );
+
+        if (!doesPasswordMatch) {
+            const err = new Error("error credentials");
+            err.httpStatus = 400;
+            throw err;
+        }
+
+        const token = jwt.sign(
+            {
+                id: isUser.id,
+                name: isUser.name,
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "7d",
+            }
+        );
+
+        res.status(200).json({ token });
+        return;
+    } catch (err) {
+        res.status(err.httpStatus || 500).json({
+            status: "error",
+            message: err.message,
+        });
     }
 
     const doesPasswordMatch = await bcrypt.compare(password, isUser.password);
@@ -203,8 +236,8 @@ app.patch('/users/reactivate_account', async (req, res) => {
 app.use(authMiddleware);
 app.use(loggedInGuard);
 console.log(authMiddleware);
-app.get('/prueba', (req, res) => {
-  res.send(req.currentUser);
+app.get("/prueba", (req, res) => {
+    res.send(req.currentUser);
 });
 
 
