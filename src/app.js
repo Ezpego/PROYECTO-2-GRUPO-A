@@ -650,3 +650,157 @@ app.delete('/user/:userId/deleteProfile', async (req, res, next) => {
     res.status(err.httpStatus || 500).json({ status: 'error', message: err.message });
   }
 });
+
+// --------------------------------
+//Parte Dani
+// --------------------------------
+
+app.use(authMiddleware);
+app.use(loggedInGuard);
+
+app.get(
+    "/exercises",
+    wrapWithCatch(async (req, res) => {
+        // const currentUser = req.currentUser;
+        try {
+            // if (currentUser) {
+            const [exercises] = await db.execute(
+                `SELECT * FROM exercises ORDER by created_at DESC `
+            );
+            res.json(exercises);
+            // } else {
+            //     res.status(401).json({ message: "Unauthorized" });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: "Internal Server Error" });
+        }
+    })
+);
+
+app.get("/exercises/:id", async (req, res) => {
+    const currentUser = req.currentUser;
+    const id = req.params.id;
+    const [[exercisesExist]] = await db.execute(
+        `SELECT * FROM exercises WHERE id = ? `,
+        [id]
+    );
+    if (exercisesExist) {
+        try {
+            if (currentUser) {
+                const [[exercises]] = await db.execute(
+                    `SELECT * FROM exercises WHERE id = ?`,
+                    [id]
+                );
+                res.json(exercises);
+            } else {
+                res.status(401).json({ message: "Unauthorized" });
+            }
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: "Internal Server Error" });
+        }
+    } else {
+        res.status(400).json({ message: "Exercise does not exist" });
+    }
+});
+
+app.post("/exercises/:id/like", async (req, res) => {
+    const currentUser = req.currentUser;
+    const id = req.params.id;
+
+    if (!currentUser) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    const [[existLike]] = await db.execute(
+        `SELECT * FROM likes WHERE user_id = ? AND exercises_id = ?`,
+        [currentUser.id, id]
+    );
+    console.log(existLike);
+    try {
+        if (existLike) {
+            await db.execute(
+                `DELETE FROM likes WHERE user_id = ? AND exercises_id = ?`,
+                [currentUser.id, id]
+            );
+            res.status(200).json({ message: "Like deleted successfully" });
+        } else {
+            await db.execute(
+                `INSERT INTO likes (user_id,exercises_id ) VALUES (?,?)`,
+                [currentUser.id, id]
+            );
+            res.status(200).json({ message: "Like added successfully" });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+});
+
+app.post("/exercises/:id/favourites", async (req, res) => {
+    const currentUser = req.currentUser;
+    const id = req.params.id;
+    const [[exercisesExist]] = await db.execute(
+        `SELECT * FROM exercises WHERE id = ? `,
+        [id]
+    );
+    if (exercisesExist) {
+        try {
+            if (currentUser) {
+                await db.execute(
+                    `INSERT INTO favourites (user_id,exercise_id ) VALUES (?,?)`,
+                    [currentUser.id, id]
+                );
+                res.status(200).json({
+                    message: "exercise added successfully",
+                });
+            } else {
+                res.status(401).json({ message: "Unauthorized" });
+            }
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: "Internal Server Error" });
+        }
+    } else {
+        res.status(400).json({ message: "Exercise does not exist" });
+    }
+});
+
+app.delete("/exercises/:id/favourites", async (req, res) => {
+    const currentUser = req.currentUser;
+    const id = req.params.id;
+    const [[exercisesExist]] = await db.execute(
+        `SELECT * FROM exercises WHERE id = ? `,
+        [id]
+    );
+    if (exercisesExist) {
+        try {
+            if (currentUser) {
+                await db.execute(
+                    `DELETE FROM favourites WHERE user_id = ? AND exercise_id = ?`,
+                    [currentUser.id, id]
+                );
+                res.status(200).json({
+                    message: "exercise deleted successfully from favourites",
+                });
+            } else {
+                res.status(401).json({ message: "Unauthorized" });
+            }
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: "Internal Server Error" });
+        }
+    } else {
+        res.status(400).json({ message: "Exercise does not exist" });
+    }
+});
+
+// app.use(fileUpload());
+
+app.use((err, req, res, next) => {
+    res.status(err.httpStatus || 500).json({
+        status: "error",
+        message: err.message,
+    });
+});
