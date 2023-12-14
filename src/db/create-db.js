@@ -1,5 +1,5 @@
-import 'dotenv/config.js';
-import connectDB from './create-pool.js';
+import "dotenv/config.js";
+import connectDB from "./create-pool.js";
 
 const db = connectDB();
 
@@ -10,15 +10,15 @@ console.log(process.env.MYSQL_USER);
 console.log(process.env.MYSQL_PASS);
 console.log(process.env.MYSQL_DB);
 
-console.log('Limpiando base de datos vieja...');
+console.log("Limpiando base de datos vieja...");
 await db.query(`DROP DATABASE IF EXISTS ${DB_NAME}`);
 
-console.log('Creando base de datos...');
+console.log("Creando base de datos...");
 await db.query(`CREATE DATABASE ${DB_NAME}`);
 
 await db.query(`USE ${DB_NAME}`);
 
-console.log('Creando tabla users...');
+console.log("Creando tabla users...");
 await db.query(`
 CREATE TABLE users (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -42,7 +42,7 @@ CREATE TABLE users (
     );
 `);
 
-console.log('Creando tabla typology...');
+console.log("Creando tabla typology...");
 await db.query(`
 CREATE TABLE typology (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -50,7 +50,7 @@ CREATE TABLE typology (
     );
 `);
 
-console.log('Creando tabla muscle group...');
+console.log("Creando tabla muscle group...");
 await db.query(`
 CREATE TABLE muscle_group (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -58,13 +58,13 @@ CREATE TABLE muscle_group (
     );
 `);
 
-console.log('Creando tabla exercises...');
+console.log("Creando tabla exercises...");
 await db.query(`
 CREATE TABLE exercises (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(30) NOT NULL UNIQUE,
-    description VARCHAR(200) NOT NULL,
-    image_url VARCHAR(50),
+    description VARCHAR(65000) NOT NULL,
+    image_url VARCHAR(200),
     difficulty_level VARCHAR(20) CHECK (
         difficulty_level IN ('Low', 'Medium', 'High')
         ) NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE exercises (
     );
 `);
 
-console.log('Creando tabla typology selection...');
+console.log("Creando tabla typology selection...");
 await db.query(`
 CREATE TABLE typology_selection (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -88,7 +88,7 @@ CREATE TABLE typology_selection (
     );
 `);
 
-console.log('Creando tabla muscle group selection...');
+console.log("Creando tabla muscle group selection...");
 await db.query(`
 CREATE TABLE muscle_group_selection (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -99,7 +99,7 @@ CREATE TABLE muscle_group_selection (
     );
 `);
 
-console.log('Creando tabla likes...');
+console.log("Creando tabla likes...");
 await db.query(`
 CREATE TABLE likes (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -111,7 +111,7 @@ CREATE TABLE likes (
     );
 `);
 
-console.log('Creando la tabla favourites...');
+console.log("Creando la tabla favourites...");
 await db.query(`
 CREATE TABLE favourites (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -124,3 +124,7 @@ CREATE TABLE favourites (
 `);
 
 await db.end();
+
+// ACTUAIZACIONES  EN BASE DE DATOS
+// fila tabla exercises  se aplica los caracteres de VARCHAR 50 a 200
+// tipo para descripcion de VARCHAR(200) a VARCHAR(65000)
