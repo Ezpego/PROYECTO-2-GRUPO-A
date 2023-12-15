@@ -12,7 +12,8 @@ import fileUpload from "express-fileupload";
 import path from "path";
 import crypto from "crypto";
 import { PUBLIC_DIR } from "./constants.js";
-import { subidaPrueba } from "./utils/UploadFiles.js";
+import { UploadFiles } from "./utils/UploadFiles.js";
+import { profile } from "console";
 
 const jsonParser = express.json();
 
@@ -321,7 +322,7 @@ app.post("/exercises", async (req, res) => {
         }
 
         const address = "photos";
-        const URL = await subidaPrueba(photo, address);
+        const URL = await UploadFiles(photo, address);
         console.log(URL);
 
         // Inserción de un nuevo ejercicio
@@ -541,9 +542,10 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
             birth_date,
             email,
             phone_number,
-            profile_image_url,
             password,
         } = req.body;
+        const profilePhoto = req.files?.photo;
+        const address = "profile";
 
         // Validar los datos actualizados, asegurarse de que al menos uno de ellos sea no nulo
 
@@ -567,7 +569,7 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
                 birth_date ||
                 email ||
                 phone_number ||
-                profile_image_url ||
+                profilePhoto ||
                 password
             )
         ) {
@@ -631,11 +633,6 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
             updateValues.push(phone_number);
         }
 
-        if (profile_image_url) {
-            updateQuery += "profile_image_url = ?, ";
-            updateValues.push(profile_image_url);
-        }
-
         if (password) {
             password = password.trim();
 
@@ -652,6 +649,12 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
             const hashedPassword = await bcrypt.hash(password, 12);
             updateQuery += "password = ?, ";
             updateValues.push(hashedPassword);
+        }
+        const profile_image_url = await UploadFiles(profilePhoto, address);
+
+        if (profile_image_url) {
+            updateQuery += "profile_image_url = ?, ";
+            updateValues.push(profile_image_url);
         }
         updateQuery = updateQuery.slice(0, -2);
 
@@ -870,60 +873,28 @@ app.post("/exercises/:id/like", async (req, res) => {
 app.post("/exercises/:id/favourites", async (req, res) => {
     const currentUser = req.currentUser;
     const id = req.params.id;
-    const [[exercisesExistWitchFavourites]] = await db.execute(
-        `SELECT * FROM favourites WHERE exercise_id = ? `,
-        [id]
+    const [[existFavourites]] = await db.execute(
+        `SELECT * FROM favourites WHERE user_id = ? AND exercise_id = ?`,
+        [currentUser.id, id]
     );
-    if (!exercisesExistWitchFavourites) {
-        try {
-            if (currentUser) {
-                await db.execute(
-                    `INSERT INTO favourites (user_id,exercise_id ) VALUES (?,?)`,
-                    [currentUser.id, id]
-                );
-                res.status(200).json({
-                    message: "exercise added successfully",
-                });
-            } else {
-                res.status(401).json({ message: "Unauthorized" });
-            }
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: "Internal Server Error" });
+    console.log(existFavourites);
+    try {
+        if (existFavourites) {
+            await db.execute(
+                `DELETE FROM favourites WHERE user_id = ? AND exercise_id = ?`,
+                [currentUser.id, id]
+            );
+            res.status(200).json({ message: "Exercises deleted successfully" });
+        } else {
+            await db.execute(
+                `INSERT INTO favourites (user_id,exercise_id ) VALUES (?,?)`,
+                [currentUser.id, id]
+            );
+            res.status(200).json({ message: "Exercises added successfully" });
         }
-    } else {
-        res.status(400).json({ message: "This exercise is already included" });
-    }
-});
-
-app.delete("/exercises/:id/favourites", async (req, res) => {
-    const currentUser = req.currentUser;
-    const id = req.params.id;
-    const [[exercisesExistWitchFavourites]] = await db.execute(
-        `SELECT * FROM favourites WHERE exercise_id = ? `,
-        [id]
-    );
-    if (exercisesExistWitchFavourites) {
-        try {
-            if (currentUser) {
-                await db.execute(
-                    `DELETE FROM favourites WHERE user_id = ? AND exercise_id = ?`,
-                    [currentUser.id, id]
-                );
-                res.status(200).json({
-                    message: "exercise deleted successfully from favourites",
-                });
-            } else {
-                res.status(401).json({ message: "Unauthorized" });
-            }
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: "Internal Server Error" });
-        }
-    } else {
-        res.status(400).json({
-            message: "This exercise is not include in favourites",
-        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal Server Error" });
     }
 });
 //-------------
