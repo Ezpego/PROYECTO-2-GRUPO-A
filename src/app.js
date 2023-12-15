@@ -277,15 +277,24 @@ app.post("/exercises", async (req, res) => {
       throw err;
     }
 
-    let { name, description, difficulty_level } = req.body;
+    let { name, description, difficulty_level, typology, muscle_group } =
+      req.body;
     // Verificamos los datos recibidos
     console.log("Dato 1: ", name);
     console.log("Dato 2: ", description);
     console.log("Dato 3: ", difficulty_level);
+    console.log("Dato 5: ", typology);
+    const photo = req.files?.photo;
+    console.log("Dato 4: ", photo);
 
-    const photo = req.files?.prueba;
-
-    if (!name || !description || !difficulty_level || !photo) {
+    if (
+      !name ||
+      !description ||
+      !difficulty_level ||
+      !photo ||
+      !muscle_group ||
+      !typology
+    ) {
       const err = new Error(
         "Incomplete data: Name, description and difficulty level are required"
       );
@@ -317,6 +326,23 @@ app.post("/exercises", async (req, res) => {
       `INSERT INTO exercises(name, description, difficulty_level, image_url) VALUES(?,?,?,?)`,
       [name, description, difficulty_level, URL]
     );
+    //insercion seleccion typologia
+    const [[exercise_id]] = await db.execute(
+      `SELECT * FROM exercises WHERE name = ?`,
+      [name]
+    );
+    console.log(exercise_id.id);
+    await db.execute(
+      `INSERT INTO typology_selection(typology_id, exercises_id) VALUES(?,?)`,
+      [typology, exercise_id.id]
+    );
+
+    //inserccion muscle_group selection
+
+    await db.execute(
+      `INSERT INTO muscle_group_selection(muscle_group_id, exercises_id) VALUES(?,?)`,
+      [muscle_group, exercise_id.id]
+    );
 
     res.status(201).json({ message: "Exercise created successfully" });
   } catch (err) {
@@ -344,8 +370,23 @@ app.patch("/exercises/:id", async (req, res) => {
     const exerciseId = req.params.id;
 
     // Obtenemos del 'body' los campos de la tabla exercises
-    let { name, description, difficulty_level, image_url } = req.body;
-
+    let {
+      name,
+      description,
+      difficulty_level,
+      image_url,
+      typology_selection,
+      muscle_group_selection,
+    } = req.query;
+    console.log(
+      "valores Obtenidos",
+      name,
+      description,
+      difficulty_level,
+      image_url,
+      typology_selection,
+      muscle_group_selection
+    );
     // Verificamos los datos recibidos
     if (!name && !description && !difficulty_level) {
       const err = new Error("At least one field is required");
@@ -361,7 +402,14 @@ app.patch("/exercises/:id", async (req, res) => {
     );
     console.log(existingExerciseWithSameName.name);
 
-    if (existingExerciseWithSameName.name === name) {
+    const [[existingExerciseWithSameNameTable]] = await db.execute(
+      `SELECT * FROM exercises WHERE name = ? LIMIT 1`,
+      [name]
+    );
+    if (
+      existingExerciseWithSameNameTable &&
+      existingExerciseWithSameNameTable.name === name
+    ) {
       const err = new Error("Exercise name already exists");
       err.httpStatus = 400;
       throw err;
@@ -403,6 +451,19 @@ app.patch("/exercises/:id", async (req, res) => {
     updateValues.push(exerciseId);
 
     await db.execute(updateQuery, updateValues);
+
+    if (typology_selection) {
+      await db.execute(
+        `UPDATE typology_selection SET typology_id = ? WHERE exercises_id = ?`,
+        [typology_selection, exerciseId]
+      );
+    }
+    if (muscle_group_selection) {
+      await db.execute(
+        `UPDATE muscle_group_selection SET muscle_group_id = ? WHERE exercises_id = ?`,
+        [muscle_group_selection, exerciseId]
+      );
+    }
 
     res.status(201).json({ message: "Exercise updated successfully" });
   } catch (err) {
@@ -688,17 +749,50 @@ app.use(authMiddleware);
 app.use(loggedInGuard);
 
 app.get(
-  "/exercises",
+  "/exercise/",
   wrapWithCatch(async (req, res) => {
+    const { muscle_group, typology, customer_likes } = req.query;
+    const ownerId = req.currentUser.id;
     // const currentUser = req.currentUser;
     try {
-      // if (currentUser) {
-      const [exercises] = await db.execute(
-        `SELECT * FROM exercises ORDER by created_at DESC `
-      );
-      res.json(exercises);
-      // } else {
-      //     res.status(401).json({ message: "Unauthorized" });
+      let query_values = `SELECT exercises.* FROM exercises `;
+
+      if (muscle_group || typology || customer_likes) {
+        query_values += ` JOIN `;
+        let query_params = [];
+        let query_where = `WHERE `;
+
+        if (muscle_group) {
+          query_values += `muscle_group_selection ON muscle_group_selection.exercises_id = exercises.id JOIN muscle_group ON muscle_group_selection.muscle_group_id = muscle_group.id JOIN `;
+          query_params.push(muscle_group);
+          query_where += `muscle_group.name = ? AND `;
+        }
+        if (typology) {
+          query_values += `typology_selection ON typology_selection.exercises_id = exercises.id JOIN typology ON typology.id = typology_selection.typology_id JOIN `;
+          query_params.push(typology);
+          query_where += `typology.name = ? AND `;
+        }
+        if (customer_likes) {
+          query_values += `likes ON likes.exercises_id = exercises.id JOIN `;
+          query_params.push(ownerId);
+          query_where += `likes.user_id = ? AND `;
+        }
+        query_values = query_values.slice(0, -5);
+        query_where = query_where.slice(0, -5);
+        console.log(
+          "comando mysql",
+          `${query_values} ${query_where}`,
+          query_params
+        );
+        const [ejerciciofiltrado] = await db.execute(
+          `${query_values} ${query_where}`,
+          query_params
+        );
+        res.json(ejerciciofiltrado);
+      } else {
+        const [ejercicionofiltrado] = await db.execute(query_values);
+        res.json(ejercicionofiltrado);
+      }
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: "Internal Server Error" });
@@ -841,6 +935,7 @@ app.get("/filter", async (req, res) => {
     [ownerId]
     // dar valores a la tabla favoritos para ver si funciona
   );
+  console.log(ownerId);
   console.log(customer_likes);
   const [group_muscle] = await db.execute(`SELECT name FROM muscle_group`);
   const [group_typology] = await db.execute(`SELECT name FROM typology`);
@@ -863,14 +958,14 @@ app.get("/favourites", async (req, res, next) => {
       [ownerId]
     );
     console.log(customer_favourites);
-    res.json({ likes: customer_favourites[0], id: [customer_favourites] });
+    res.json({ id: [customer_favourites] });
   } catch (err) {
     next(err);
   }
 });
 
 //---------
-//middleware ruta no encontrada @
+//middleware ruta no encontrad@
 app.use((req, res) => {
   res.status(404).send({ status: "error", messaje: "ruta no encontrada" });
 });
