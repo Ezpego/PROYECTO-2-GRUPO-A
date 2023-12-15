@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { PUBLIC_DIR } from "../constants.js";
 import { SERVER_HOST } from "../constants.js";
 
-export async function subidaPrueba(photo, address) {
+export async function UploadFiles(photo, address) {
     const fileExtension = path.extname(photo.name);
     const randomFileName = crypto.randomUUID();
     const newFilePath = `${randomFileName}${fileExtension}`;
