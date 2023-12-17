@@ -1,29 +1,36 @@
-// REGISTRO DE UN NUEVO EJERCICIO
-app.use(fileUpload());
+import "dotenv/config.js";
+import express from "express";
+import { db } from "../db/db-connection.js";
+import fileUpload from "express-fileupload";
+import { authMiddleware } from "../middlewares/auth.js";
+import { loggedInGuard } from "../middlewares/logged-in-guard.js";
+import { wrapWithCatch } from "../utils/wrap-with-catch.js";
+import { UploadFiles } from "../utils/UploadFiles.js";
+import {
+    throwErrorExerciseDoesNotExist,
+    throwErrorNameExerciseExist,
+    throwErrorNotAdmin,
+    throwErrorSomeInformationAreRequired,
+} from "../utils/errors.js";
 
-app.post("/exercises", async (req, res) => {
-    console.log("cuerpo:", req.body);
-    try {
+const router = express.Router();
+router.use(authMiddleware);
+router.use(loggedInGuard);
+router.use(fileUpload());
+
+router.post(
+    "/exercises",
+    wrapWithCatch(async (req, res) => {
         // Obtenemos info del usuario actual logeado
         const currentUser = req.currentUser;
         console.log(currentUser);
         if (!currentUser || currentUser.isAdministrator !== 1) {
-            const err = new Error(
-                "Unauthorized : Only administrators can add exercises"
-            );
-            err.httpStatus = 403;
-            throw err;
+            throwErrorNotAdmin();
         }
-
+        //Obtenemos datos del body
         let { name, description, difficulty_level, typology, muscle_group } =
             req.body;
-        // Verificamos los datos recibidos
-        console.log("Dato 1: ", name);
-        console.log("Dato 2: ", description);
-        console.log("Dato 3: ", difficulty_level);
-        console.log("Dato 5: ", typology);
         const photo = req.files?.photo;
-        console.log("Dato 4: ", photo);
 
         if (
             !name ||
@@ -33,16 +40,12 @@ app.post("/exercises", async (req, res) => {
             !muscle_group ||
             !typology
         ) {
-            const err = new Error(
-                "Incomplete data: Name, description and difficulty level are required"
-            );
-            err.httpStatus = 400;
-            throw err;
+            throwErrorSomeInformationAreRequired();
         }
 
         const [[existingExerciseWithSameName]] = await db.execute(
             `
-      SELECT * FROM exercises WHERE name = ? LIMIT 1`,
+          SELECT * FROM exercises WHERE name = ? LIMIT 1`,
             [name]
         );
 
@@ -50,19 +53,15 @@ app.post("/exercises", async (req, res) => {
             existingExerciseWithSameName &&
             existingExerciseWithSameName.name === name
         ) {
-            const err = new Error("Exercise name already exists");
-            err.httpStatus = 400;
-            throw err;
+            throwErrorNameExerciseExist();
         }
-
         const address = "photos";
         const URL = await UploadFiles(photo, address);
-        console.log(URL);
 
         // Inserción de un nuevo ejercicio
         await db.execute(
-            `INSERT INTO exercises(name, description, difficulty_level, image_url) VALUES(?,?,?,?)`,
-            [name, description, difficulty_level, URL]
+            `INSERT INTO exercises(created_by, name, description, difficulty_level, image_url) VALUES(?,?,?,?,?)`,
+            [currentUser.id, name, description, difficulty_level, URL]
         );
         //insercion seleccion typologia
         const [[exercise_id]] = await db.execute(
@@ -83,26 +82,18 @@ app.post("/exercises", async (req, res) => {
         );
 
         res.status(201).json({ message: "Exercise created successfully" });
-    } catch (err) {
-        res.status(err.httpStatus || 500).json({
-            status: "error",
-            message: err.message,
-        });
-    }
-});
+    })
+);
 
 // MODIFICAR UN EJERCICIO
 
-app.patch("/exercises/:id", async (req, res) => {
-    try {
+router.patch(
+    "/exercises/:id",
+    wrapWithCatch(async (req, res) => {
         // Obtenemos info del usuario actual logeado
         const currentUser = req.currentUser;
         if (!currentUser || currentUser.isAdministrator !== 1) {
-            const err = new Error(
-                "Unauthorized : Only administrators can modify exercises"
-            );
-            err.httpStatus = 403;
-            throw err;
+            throwErrorNotAdmin();
         }
         // Obtenemos el id del ejercicio existente mediante el query params
         const exerciseId = req.params.id;
@@ -112,59 +103,34 @@ app.patch("/exercises/:id", async (req, res) => {
             name,
             description,
             difficulty_level,
-            image_url,
             typology_selection,
             muscle_group_selection,
-        } = req.query;
-        console.log(
-            "valores Obtenidos",
-            name,
-            description,
-            difficulty_level,
             image_url,
-            typology_selection,
-            muscle_group_selection
-        );
-        // Verificamos los datos recibidos
-        if (!name && !description && !difficulty_level) {
-            const err = new Error("At least one field is required");
-            err.httpStatus = 400;
-            throw err;
-        }
-        console.log(description);
-        // CREAR LA LÓGICA PARA VERIFICAR QUE EL NOMBRE NO EXISTA
+        } = req.query;
+        const photo = req.files?.photo;
+        let image_url_old;
 
-        const [[existingExerciseWithSameName]] = await db.execute(
+        const [[existingExerciseinDB]] = await db.execute(
             `SELECT * FROM exercises WHERE id = ? LIMIT 1`,
             [exerciseId]
         );
-        console.log(existingExerciseWithSameName.name);
-
-        const [[existingExerciseWithSameNameTable]] = await db.execute(
-            `SELECT * FROM exercises WHERE name = ? LIMIT 1`,
-            [name]
-        );
-        if (
-            existingExerciseWithSameNameTable &&
-            existingExerciseWithSameNameTable.name === name
-        ) {
-            const err = new Error("Exercise name already exists");
-            err.httpStatus = 400;
-            throw err;
+        if (!existingExerciseinDB) {
+            throwErrorExerciseDoesNotExist();
+        }
+        if (name) {
+            const [[existingExerciseWithSameNameTable]] = await db.execute(
+                `SELECT * FROM exercises WHERE name = ? LIMIT 1`,
+                [name]
+            );
+            if (
+                existingExerciseWithSameNameTable &&
+                existingExerciseWithSameNameTable.name === name
+            ) {
+                throwErrorNameExerciseExist();
+            }
         }
 
-        // Verificar si el ejercicio existe en la db
-        const [[existingExercise]] = await db.execute(
-            `SELECT * FROM exercises WHERE id = ? LIMIT 1`,
-            [exerciseId]
-        );
-        if (!existingExercise) {
-            const err = new Error("Exercise not found");
-            err.httpStatus = 400;
-            throw err;
-        }
-
-        // Modificar el ejercicio localizado
+        // Modificar el ejercicio localizado usando un comando SQL modular en funcion de los elementos a actualizar
         let updateValues = [];
         let updateQuery = "UPDATE exercises SET ";
 
@@ -180,15 +146,23 @@ app.patch("/exercises/:id", async (req, res) => {
             updateQuery += "difficulty_level = ?, ";
             updateValues.push(difficulty_level);
         }
-        if (image_url) {
-            updateQuery += "image_url = ?, ";
-            updateValues.push(image_url);
+        if (photo) {
+            if (existingExerciseinDB.image_url) {
+                image_url_old = existingExerciseinDB.image_url;
+            }
+            const address = "photos";
+            image_url = await UploadFiles(photo, address, image_url_old);
+            if (image_url) {
+                updateQuery += "image_url = ?, ";
+                updateValues.push(image_url);
+            }
         }
         updateQuery = updateQuery.slice(0, -2);
         updateQuery += " WHERE id = ?";
         updateValues.push(exerciseId);
-
-        await db.execute(updateQuery, updateValues);
+        if (image_url || name || description || difficulty_level) {
+            await db.execute(updateQuery, updateValues);
+        }
 
         if (typology_selection) {
             await db.execute(
@@ -204,26 +178,18 @@ app.patch("/exercises/:id", async (req, res) => {
         }
 
         res.status(201).json({ message: "Exercise updated successfully" });
-    } catch (err) {
-        res.status(err.httpStatus || 500).json({
-            status: "error",
-            message: err.message,
-        });
-    }
-});
+    })
+);
 
 // ELIMINAR UN EJERCICIO
 
-app.delete("/exercises/:id", async (req, res) => {
-    try {
+router.delete(
+    "/exercises/:id",
+    wrapWithCatch(async (req, res) => {
         // Obtenemos info del usuario actual logeado
         const currentUser = req.currentUser;
         if (!currentUser || currentUser.isAdministrator !== 1) {
-            const err = new Error(
-                "Unauthorized : Only administrators can delete exercises"
-            );
-            err.httpStatus = 403;
-            throw err;
+            throwErrorNotAdmin();
         }
         // Obtenemos el id del ejercicio existente mediante el query params
         const exerciseId = req.params.id;
@@ -235,18 +201,13 @@ app.delete("/exercises/:id", async (req, res) => {
         );
 
         if (!existingExercise) {
-            const err = new Error("Exercise not found");
-            err.httpStatus = 400;
-            throw err;
+            throwErrorExerciseDoesNotExist();
         }
 
         await db.execute(`DELETE FROM exercises WHERE id = ?`, [exerciseId]);
 
         res.status(201).json({ message: "Exercise deleted successfully" });
-    } catch (err) {
-        res.status(err.httpStatus || 500).json({
-            status: "error",
-            message: err.message,
-        });
-    }
-});
+    })
+);
+
+export default router;

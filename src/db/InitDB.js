@@ -73,8 +73,8 @@ CREATE TABLE exercises (
     updated_by INT UNSIGNED,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES users (id),
-    FOREIGN KEY (updated_by) REFERENCES users (id)
+    FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE SET NULL
     );
 `);
 
@@ -84,7 +84,7 @@ CREATE TABLE typology_selection (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     exercises_id INT UNSIGNED,
     typology_id INT UNSIGNED,
-    FOREIGN KEY (exercises_id) REFERENCES exercises(id),
+    FOREIGN KEY (exercises_id) REFERENCES exercises(id) ON DELETE CASCADE,
     FOREIGN KEY (typology_id) REFERENCES typology(id)
     );
 `);
@@ -95,7 +95,7 @@ CREATE TABLE muscle_group_selection (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     exercises_id INT UNSIGNED,
     muscle_group_id INT UNSIGNED,
-    FOREIGN KEY (exercises_id) REFERENCES exercises(id),
+    FOREIGN KEY (exercises_id) REFERENCES exercises(id) ON DELETE CASCADE,
     FOREIGN KEY (muscle_group_id) REFERENCES muscle_group(id)
     );
 `);
@@ -105,10 +105,10 @@ await db.query(`
 CREATE TABLE likes (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     user_id INT UNSIGNED,
-    exercises_id INT UNSIGNED,
+    exercise_id INT UNSIGNED,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (exercises_id) REFERENCES exercises(id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
     );
 `);
 
@@ -119,13 +119,9 @@ CREATE TABLE favourites (
     user_id INT UNSIGNED,
     exercise_id INT UNSIGNED,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (exercise_id) REFERENCES exercises(id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
     );
 `);
 
 await db.end();
-
-// ACTUAIZACIONES  EN BASE DE DATOS
-// fila tabla exercises  se aplica los caracteres de VARCHAR 50 a 200
-// tipo para descripcion de VARCHAR(200) a VARCHAR(3000)

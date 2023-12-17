@@ -2,46 +2,51 @@ import "dotenv/config.js";
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { db } from "./db/db-connection.js";
-import { PORT, SERVER_HOST } from "./constants.js";
-import { authMiddleware } from "./middlewares/auth.js";
-import { loggedInGuard } from "./middlewares/logged-in-guard.js";
-import { sendRegisterConfirmation } from "./utils/send-register-confirmation.js";
-import { wrapWithCatch } from "./utils/wrap-with-catch.js";
+import { db } from "../db/db-connection.js";
+import { sendRegisterConfirmation } from "../utils/send-register-confirmation.js";
+import { UploadFiles } from "../utils/UploadFiles.js";
+import { wrapWithCatch } from "../utils/wrap-with-catch.js";
+import { authMiddleware } from "../middlewares/auth.js";
+import { loggedInGuard } from "../middlewares/logged-in-guard.js";
+import {
+    throwErrorEmailRequired,
+    throwErrorNameRequired,
+    throwErrorPasswordRequired,
+    throwErrorPasswordRequirements,
+    throwErrorEmailInUse,
+    throwErrorCredentials,
+    throwErrorUserNotFound,
+    throwErrorInvalidVerification,
+    throwErrorAllFieldsRequired,
+    throwUnauthorizedError,
+    throwErrorUserNotDeleted,
+    throwErrorOneFieldsRequired,
+} from "../utils/errors.js";
 import fileUpload from "express-fileupload";
-import path from "path";
-import crypto from "crypto";
-import { PUBLIC_DIR } from "./constants.js";
-import { UploadFiles } from "./utils/UploadFiles.js";
-import { profile } from "console";
-import filtersRoute from "./rutas/filters.js";
+
+const router = express.Router();
 
 function generateReactivationCode() {
     const code = Math.floor(Math.random() * 9999) + 1000;
     return code.toString(); // Convierte el número en una cadena de texto
 }
-const router = express.Router();
-router.post("/users/register", async (req, res) => {
-    let { email, password, name } = req.body;
-    try {
+
+router.post(
+    "/users/register",
+    wrapWithCatch(async (req, res) => {
+        let { email, password, name } = req.body;
         //procedemos a validar los datos que nos llegan
         email = email.trim();
         name = name.trim();
         password = password.trim();
         if (!email) {
-            const err = new Error("EMAIL IS REQUIRED");
-            err.httpStatus = 400;
-            throw err;
+            throwErrorEmailRequired();
         }
         if (!name) {
-            const err = new Error("NAME IS REQUIRED");
-            err.httpStatus = 400;
-            throw err;
+            throwErrorNameRequired();
         }
         if (!password) {
-            const err = new Error("PASSWORD IS REQUIRED");
-            err.httpStatus = 400;
-            throw err;
+            throwErrorPasswordRequired();
         }
 
         if (
@@ -50,47 +55,36 @@ router.post("/users/register", async (req, res) => {
             !/[A-Z]/.test(password) ||
             !/[0-9]/.test(password)
         ) {
-            throw new Error("PASSWORD_DOES_NOT_MATCH_REQUIREMENTS");
+            throwErrorPasswordRequirements();
         }
-        console.log("SELECT * FROM users WHERE email = ?", email);
         const [[maybeUserWithEmail]] = await db.execute(
             `SELECT * FROM users WHERE email = ? LIMIT 1`,
             [email]
         );
-        console.log("Resultado de la consulta:", maybeUserWithEmail);
 
         if (!maybeUserWithEmail) {
             // No se encontró ningún usuario con este correo electrónico, proceder con la inserción
             const hashedPassword = await bcrypt.hash(password, 12);
-            console.log("Insertando nuevo usuario:", name, email);
             await db.execute(
                 `INSERT INTO users(name, email, password) 
         VALUES(?,?,?)`,
                 [name, email, hashedPassword]
             );
-            console;
-            console.log("Usuario insertado correctamente:", name, email);
             res.status(200).send();
         } else {
             // El correo electrónico ya está en uso
-            const err = new Error("EMAIL IN USE");
-            err.httpStatus = 400;
-            throw err;
+            throwErrorEmailInUse();
         }
-    } catch (err) {
-        res.status(err.httpStatus || 500).json({
-            status: "error",
-            message: err.message,
-        });
-    }
-});
+    })
+);
 
 // --------------------------------
 // JSON TOKEN
 // --------------------------------
 
-router.post("/users/login", async (req, res) => {
-    try {
+router.post(
+    "/users/login",
+    wrapWithCatch(async (req, res) => {
         const { email, password } = req.body;
 
         const [[isUser]] = await db.execute(
@@ -99,9 +93,7 @@ router.post("/users/login", async (req, res) => {
         );
 
         if (!isUser) {
-            const err = new Error("error credentials");
-            err.httpStatus = 400;
-            throw err;
+            throwErrorCredentials();
         }
 
         const doesPasswordMatch = await bcrypt.compare(
@@ -110,9 +102,7 @@ router.post("/users/login", async (req, res) => {
         );
 
         if (!doesPasswordMatch) {
-            const err = new Error("error credentials");
-            err.httpStatus = 400;
-            throw err;
+            throwErrorCredentials();
         }
 
         const [[existingDisabledUser]] = await db.execute(
@@ -152,25 +142,19 @@ router.post("/users/login", async (req, res) => {
 
         res.status(200).json({ token });
         return;
-    } catch (err) {
-        res.status(err.httpStatus || 500).json({
-            status: "error",
-            message: err.message,
-        });
-    }
-});
+    })
+);
 //RUTA PARA REACTIVAR CONTRASEÑA
-router.patch("/users/forgottenPassword", async (req, res) => {
-    const { email } = req.body;
-    try {
+router.patch(
+    "/users/forgottenPassword",
+    wrapWithCatch(async (req, res) => {
+        const { email } = req.body;
         const [[currentUser]] = await db.execute(
             `SELECT * FROM users WHERE email = ?`,
             [email]
         );
         if (!currentUser) {
-            const err = new Error("User not found");
-            err.httpStatus = 404;
-            throw err;
+            throwErrorUserNotFound();
         }
 
         const reactivationCode = generateReactivationCode();
@@ -181,31 +165,29 @@ router.patch("/users/forgottenPassword", async (req, res) => {
             [reactivationCode, email]
         );
 
-        await sendRegisterConfirmation(
-            reactivationCode,
-            existingDisabledUser.email
-        );
+        await sendRegisterConfirmation(reactivationCode, email);
         res.status(200).json({
             message: "Reactivation code sent successfully",
         });
         return;
-    } catch (error) {}
-});
+    })
+);
 
-router.patch("/users/reactivate_account", async (req, res) => {
-    const { email, verificationcode, password } = req.body;
+router.patch(
+    "/users/reactivate_account",
+    wrapWithCatch(async (req, res) => {
+        const { email, verificationcode, password } = req.body;
 
-    try {
-        const hashedPassword = await bcrypt.hash(password, 12);
         const [[currentUser]] = await db.execute(
             `SELECT * FROM users WHERE email = ?`,
             [email]
         );
-        console.log(currentUser);
         if (!currentUser) {
-            const err = new Error("User not found");
-            err.httpStatus = 404;
-            throw err;
+            throwErrorUserNotFound();
+        }
+
+        if (!email || !verificationcode || !password) {
+            throwErrorAllFieldsRequired();
         }
         if (
             !password ||
@@ -213,44 +195,39 @@ router.patch("/users/reactivate_account", async (req, res) => {
             !/[A-Z]/.test(password) ||
             !/[0-9]/.test(password)
         ) {
-            throw new Error("PASSWORD_DOES_NOT_MATCH_REQUIREMENTS");
+            throwErrorPasswordRequirements();
         }
-
+        const hashedPassword = await bcrypt.hash(password, 12);
         if (verificationcode === currentUser.reactivation_code) {
             await db.execute(
                 `UPDATE users SET password = ?, isEnabled = TRUE WHERE email= ?`,
                 [hashedPassword, email]
             );
-            console.log(currentUser.reactivation_code);
-
             res.status(200).json({
                 message: "Account reactivated successfully",
             });
         } else {
-            const err = new Error("Invalid verification code");
-            err.httpStatus = 400;
-            throw err;
+            throwErrorInvalidVerification();
         }
-    } catch (err) {
-        res.status(400).json({ status: "error", message: err.message });
-    }
-});
+    })
+);
 
+router.use(authMiddleware);
+router.use(loggedInGuard);
 // EDITAR PERFIL
 
-app.patch("/user/:userId/editProfile", async (req, res) => {
-    try {
+router.patch(
+    "/user/:userId/editProfile",
+    wrapWithCatch(async (req, res, next) => {
         // Obtener datos user desde parametro url
+        console.log(req.query);
+
         const userId = parseInt(req.params.userId);
         const currentUser = req.currentUser;
         console.log(userId);
-
+        console.log("current User", currentUser);
         if (currentUser.id !== userId) {
-            const err = new Error(
-                "Unauthorized: You are not allowed to edit this profile"
-            );
-            err.httpStatus = 403;
-            throw err;
+            throwUnauthorizedError;
         }
 
         // Obtener los datos actualizados del cuerpo de la solicitud
@@ -262,9 +239,11 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
             email,
             phone_number,
             password,
-        } = req.body;
-        const profilePhoto = req.files?.photo;
+        } = req.query;
+        const profilePhoto = req.files?.photos;
         const address = "profile";
+        let profile_image_url;
+        console.log("soy el body", req.files);
 
         // Validar los datos actualizados, asegurarse de que al menos uno de ellos sea no nulo
 
@@ -279,7 +258,7 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
         if (password) {
             password = password.trim();
         }
-
+        //! En caso de no actualizar el campo no se le dejara mandar formulario no?¿
         if (
             !(
                 name ||
@@ -292,20 +271,12 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
                 password
             )
         ) {
-            const err = new Error("At least one field  is required for update");
-            err.httpStatus = 400;
-            throw err;
+            throwErrorOneFieldsRequired();
         }
 
         // Construir la consulta de actualización según los datos proporcionados
         let updateQuery = "UPDATE users SET ";
         let updateValues = [];
-        if (name && name === currentUser.name) {
-            name = name.trim();
-            const err = new Error("This name is already in use");
-            err.httpStatus = 400;
-            throw err;
-        }
 
         if (name) {
             name = name.trim();
@@ -339,9 +310,7 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
                 existingUserWithEmail &&
                 existingUserWithEmail.email === email
             ) {
-                const err = new Error("Email already exists in the database");
-                err.httpStatus = 400;
-                throw err;
+                throwErrorEmailInUse();
             }
             updateQuery += "email = ?, ";
             updateValues.push(email);
@@ -361,19 +330,29 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
                 !/[A-Z]/.test(password) ||
                 !/[0-9]/.test(password)
             ) {
-                const err = new Error("PASSWORD_DOES_NOT_MATCH_REQUIREMENTS");
-                err.httpStatus = 400;
-                throw err;
+                throwErrorPasswordRequirements();
             }
             const hashedPassword = await bcrypt.hash(password, 12);
             updateQuery += "password = ?, ";
             updateValues.push(hashedPassword);
         }
-        const profile_image_url = await UploadFiles(profilePhoto, address);
+        if (profilePhoto) {
+            const [[existingOldUrl]] = await db.execute(
+                "SELECT profile_image_url FROM users WHERE id = ?",
+                [currentUser.id]
+            );
+            console.log(existingOldUrl);
+            profile_image_url = await UploadFiles(
+                profilePhoto,
+                address,
+                existingOldUrl.profile_image_url
+            );
 
-        if (profile_image_url) {
-            updateQuery += "profile_image_url = ?, ";
-            updateValues.push(profile_image_url);
+            console.log(profile_image_url);
+            if (profile_image_url) {
+                updateQuery += "profile_image_url = ?, ";
+                updateValues.push(profile_image_url);
+            }
         }
         updateQuery = updateQuery.slice(0, -2);
 
@@ -384,28 +363,20 @@ app.patch("/user/:userId/editProfile", async (req, res) => {
         await db.execute(updateQuery, updateValues);
 
         res.status(200).json({ message: "Profile updated successfully" });
-    } catch (err) {
-        res.status(err.httpStatus || 500).json({
-            status: "error",
-            message: err.message,
-        });
-    }
-});
+    })
+);
 
 // DESHABILITAR EL PROPIO PERFIL POR EL USUARIO
 
-app.patch("/user/:userId/disableProfile", async (req, res) => {
-    try {
+router.patch(
+    "/user/:userId/disableProfile",
+    wrapWithCatch(async (req, res) => {
         // Obtener datos user desde parametro url
         const userId = parseInt(req.params.userId);
         const currentUser = req.currentUser;
 
         if (currentUser.id !== userId) {
-            const err = new Error(
-                "Unauthorized: You are not allowed to delete this profile"
-            );
-            err.httpStatus = 403;
-            throw err;
+            throwUnauthorizedError();
         }
 
         // Actualizar la columna isEnabled del propio usuario a false en la base de datos
@@ -416,26 +387,17 @@ app.patch("/user/:userId/disableProfile", async (req, res) => {
         res.status(200).json({
             message: "Your profile has been disabled successfully",
         });
-    } catch (err) {
-        console.error(err);
-        res.status(err.httpStatus || 500).json({
-            status: "error",
-            message: err.message,
-        });
-    }
-});
+    })
+);
 
 // ELIMINACIÓN FISICA DE USUARIO (SOLO ADMINISTRADORES)
 
-app.delete("/user/:userId/deleteProfile", async (req, res, next) => {
-    try {
+router.delete(
+    "/user/:userId/deleteProfile",
+    wrapWithCatch(async (req, res, next) => {
         const currentUser = req.currentUser;
         if (!currentUser || currentUser.isAdministrator !== 1) {
-            const err = new Error(
-                "Unauthorized : Only administrators can delete exercises"
-            );
-            err.httpStatus = 403;
-            throw err;
+            throwUnauthorizedError();
         }
         // Obtener el ID del usuario a eliminar
         const userIdToDelete = req.params.userId;
@@ -445,9 +407,7 @@ app.delete("/user/:userId/deleteProfile", async (req, res, next) => {
         );
 
         if (!existingUser || existingUser.length === 0) {
-            const err = new Error("User not found");
-            err.httpStatus = 404;
-            throw err;
+            throwErrorUserNotFound();
         }
 
         const deletedUser = await db.execute("DELETE FROM users WHERE id = ?", [
@@ -455,16 +415,11 @@ app.delete("/user/:userId/deleteProfile", async (req, res, next) => {
         ]);
 
         if (!deletedUser) {
-            const err = new Error("User could not be deleted");
-            err.httpStatus = 403;
-            throw err;
+            throwErrorUserNotDeleted();
         }
 
         res.status(200).json({ message: "Profile deleted successfully" });
-    } catch (err) {
-        res.status(err.httpStatus || 500).json({
-            status: "error",
-            message: err.message,
-        });
-    }
-});
+    })
+);
+
+export default router;

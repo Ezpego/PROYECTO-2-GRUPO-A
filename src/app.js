@@ -1,26 +1,14 @@
 import "dotenv/config.js";
 import express from "express";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { db } from "./db/db-connection.js";
 import { PORT, SERVER_HOST } from "./constants.js";
-import { authMiddleware } from "./middlewares/auth.js";
-import { loggedInGuard } from "./middlewares/logged-in-guard.js";
-import { sendRegisterConfirmation } from "./utils/send-register-confirmation.js";
-import { wrapWithCatch } from "./utils/wrap-with-catch.js";
-import fileUpload from "express-fileupload";
-import path from "path";
-import crypto from "crypto";
 import { PUBLIC_DIR } from "./constants.js";
-import { UploadFiles } from "./utils/UploadFiles.js";
-import { profile } from "console";
 import filtersRoute from "./routes/filters.js";
-
-// !const jsonParser = express.json();
-
+import exercisesRoute from "./routes/exercises.js";
+import usersRoute from "./routes/users.js";
 const app = express();
 
-app.use(jsonParser);
+app.use(express.json());
 const staticFileHandler = express.static(PUBLIC_DIR);
 app.use(staticFileHandler);
 
@@ -35,12 +23,17 @@ app.listen(PORT, () => {
         );
 });
 
-// !app.use(express.json());
+// --------------------------------
+// Rutas usuarios
+// --------------------------------
 
-// !app.use(authMiddleware);
-// !app.use(loggedInGuard); // Lo metemos en el app o en cada archivo de rutas?
+app.use(usersRoute);
 
-// USUARIO REGISTRADO (ADMINISTRADOR)
+// --------------------------------
+// Rutas ejercicios
+// --------------------------------
+
+app.use(exercisesRoute);
 
 // --------------------------------
 //Rutas de filtrado

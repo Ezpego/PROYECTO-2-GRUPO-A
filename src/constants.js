@@ -10,3 +10,5 @@ import path from "path";
 
 export const PUBLIC_DIR = path.join(process.cwd(), "public");
 // export const PHOTOS_DIR = path.join(PUBLIC_DIR, "photos");
+
+export const DIFFICULTY_LEVEL = ["Low", "Medium", "High"];
