@@ -6,30 +6,29 @@ import { PUBLIC_DIR } from "./constants.js";
 import filtersRoute from "./routes/filters.js";
 import exercisesRoute from "./routes/exercises.js";
 import usersRoute from "./routes/users.js";
+
 const app = express();
+const jsonParser = express.json();
 
 app.use(express.json());
-
+app.use(jsonParser);
 const staticFileHandler = express.static(PUBLIC_DIR);
 app.use(staticFileHandler);
 
-app.use(fileUpload());
-
 app.listen(PORT, () => {
-  console.log(`Server is running on ${SERVER_HOST}`);
+    console.log(`Server is running on ${SERVER_HOST}`);
 
-  // Verificar la conexión a la base de datos aquí
-  db.execute("SELECT 1")
-    .then(() => console.log("Connected to database successfully!"))
-    .catch((err) =>
-      console.error("Error connecting to database:", err.message)
-    );
+    // Verificar la conexión a la base de datos aquí
+    db.execute("SELECT 1")
+        .then(() => console.log("Connected to database successfully!"))
+        .catch((err) =>
+            console.error("Error connecting to database:", err.message)
+        );
 });
 
 // --------------------------------
 // Rutas usuarios
 // --------------------------------
-
 
 app.use(usersRoute);
 
@@ -44,19 +43,17 @@ app.use(exercisesRoute);
 // --------------------------------
 
 app.use(filtersRoute);
-app.use(usersRoute);
-app.use(exercises);
+
 //---------
 //middleware ruta no encontrad@
 app.use((req, res) => {
-  res.status(404).send({ status: "error", messaje: "ruta no encontrada" });
+    res.status(404).send({ status: "error", messaje: "ruta no encontrada" });
 });
 
 //middleware de errores
 app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(err.httpStatus || 500).json({
-    status: "error",
-    message: err.message || "Internal Server Error",
-  });
+    res.status(err.httpStatus || 500).json({
+        status: "error",
+        message: err.message,
+    });
 });

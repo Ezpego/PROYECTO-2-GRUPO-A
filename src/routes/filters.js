@@ -2,10 +2,8 @@ import "dotenv/config.js";
 import express from "express";
 import { db } from "../db/db-connection.js";
 import { wrapWithCatch } from "../utils/wrap-with-catch.js";
-
 import { authMiddleware } from "../middlewares/auth.js";
 import { loggedInGuard } from "../middlewares/logged-in-guard.js";
-
 import {
     checkExercise,
     checkLikeAndFavourite,
@@ -15,10 +13,8 @@ import { DIFFICULTY_LEVEL } from "../constants.js";
 
 const router = express.Router();
 
-
 router.use(authMiddleware);
 router.use(loggedInGuard);
-
 
 router.get(
     "/exercises/",
@@ -56,7 +52,7 @@ router.get(
             );
             res.json(ejerciciofiltrado);
         } else {
-            const [ejercicionofiltrado] = await db.execute(query_values);
+            const [ejercicionofiltrado] = await db.execute(`SELECT exercises.* FROM exercises ORDER BY created_at DESC`);
             res.json(ejercicionofiltrado);
         }
     })
@@ -83,30 +79,34 @@ router.get(
 
 router.post(
     "/exercises/:id/likes", //! Aclarar que hay que cambiar el nombre de la rutareq
+    checkExercise,
     checkLikeAndFavourite,
     wrapWithCatch(async (req, res) => {
-        const currentUser = req.currentUser;
-        const id = req.params.id;
-        const exist = req.likeAndFavourite;
-        console.log(exist);
-        if (exist) {
-            await db.execute(
-                `DELETE FROM likes WHERE user_id = ? AND exercise_id = ?`,
-                [currentUser.id, id]
-            );
-            res.status(200).json({ message: "Like deleted successfully" });
-        } else {
-            await db.execute(
-                `INSERT INTO likes (user_id,exercise_id ) VALUES (?,?)`,
-                [currentUser.id, id]
-            );
-            res.status(200).json({ message: "Like added successfully" });
-        }
+    const currentUser = req.currentUser;
+    const id = req.params.id;
+    console.log(id);
+    const exist = req.likeAndFavourite;
+    console.log(exist);
+
+    if (exist) {
+    await db.execute(
+    `DELETE FROM likes WHERE user_id = ? AND exercise_id = ?`,
+    [currentUser.id, id]
+    );
+    res.status(200).json({ message: "Like deleted successfully" });
+    } else {
+    await db.execute(
+    `INSERT INTO likes (user_id,exercise_id ) VALUES (?,?)`,
+    [currentUser.id, id]
+    );
+    res.status(200).json({ message: "Like added successfully" });
+    }
     })
-);
+    );
 
 router.post(
     "/exercises/:id/favourites",
+    checkExercise,
     checkLikeAndFavourite,
     wrapWithCatch(async (req, res) => {
         const currentUser = req.currentUser;
@@ -150,7 +150,7 @@ router.get(
             throwErrorFilterDoesNotExist();
         }
         const [likes] = await db.execute(
-            `SELECT exercises.id, name FROM exercises JOIN likes ON likes.exercises_id = exercises.id WHERE likes.user_id = ${currentUser.id}`
+            `SELECT exercises.id, name FROM exercises JOIN likes ON likes.exercise_id = exercises.id WHERE likes.user_id = ${currentUser.id}`
         );
         res.json({
             muscle: [group_muscle],
@@ -170,7 +170,7 @@ router.get(
         const ownerId = req.currentUser.id;
 
         const [customer_favourites] = await db.execute(
-            `SELECT * FROM exercises JOIN favourites ON favourites.exercises_id = exercises.id WHERE favourites.user_id = ?`,
+            `SELECT * FROM exercises JOIN favourites ON favourites.exercise_id = exercises.id WHERE favourites.user_id = ?`,
             [ownerId] //
         );
         res.json({ id: [customer_favourites] });

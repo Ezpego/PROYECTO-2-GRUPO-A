@@ -105,10 +105,10 @@ await db.query(`
 CREATE TABLE likes (
     id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     user_id INT UNSIGNED,
-    exercises_id INT UNSIGNED,
+    exercise_id INT UNSIGNED,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-    FOREIGN KEY (exercises_id) REFERENCES exercises(id) ON DELETE CASCADE
+    FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
     );
 `);
 
@@ -125,19 +125,3 @@ CREATE TABLE favourites (
 `);
 
 await db.end();
-
-// ACTUAIZACIONES  EN BASE DE DATOS
-// fila tabla exercises  se aplica los caracteres de VARCHAR 50 a 200
-// tipo para descripcion de VARCHAR(200) a VARCHAR(3000)
-
-// USUARIO REGISTRADO (ADMINISTRADOR)
-
-//-------------------
-//                   \|||/
-//                   (o o)
-//          ------ooO-(_)-Ooo------
-//                  !GABISAS
-//!             EXPLICAR DEPENDENCIAS ELIMINACION KEYS FGK
-//__________________
-
-// REGISTRO DE UN NUEVO EJERCICIO

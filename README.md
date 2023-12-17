@@ -22,222 +22,114 @@ USUARIOS ANÓNIMOS
   ● Los usuarios (no administrador) pueden seleccionar algunos ejercicios para ponerlos
   entre los favoritos, útil para poder organizar una clase de entrenamiento.
 
-prueba
+----------------------------------------------------------------------------------------------------------
 
-# ENDPOINTS
+# PASOS INICIALES
 
+1 EJECUTAR ARCHIVO init-db.js
+2 EJECUTAR ARCHIVO seed.js
+3 EJECUTAR ARCHIVO app.js
 
-USUARIOS ANÓNIMOS
+NOTA : DEJAMOS EN EL ARCHIVO .env.example LOS DATOS DE REGISTRO/LOGIN DEL USUARIO ADMINISTRADOR
 
-<!--
+# ENDPOINTS RUTA USERS
 
-REGISTRO DE UN USUARIO NUEVO
+1 Registro de Usuarios
 
-* POST '/users/register' *
+Método: POST
+Ruta: /users/register
+Descripción: Registra un nuevo usuario en el sistema. Valida y verifica los datos del usuario antes de insertarlos en la base de datos.
 
-VALIDACIÓN DE EMAIL
+2 Inicio de Sesión de Usuarios
 
-* PUT '/users/validate' *
+Método: POST
+Ruta: /users/login
+Descripción: Permite que un usuario existente inicie sesión. Verifica las credenciales proporcionadas y emite un token JWT válido por 7 días para autenticación.
 
- -->
+3 Reactivación de Contraseña Olvidada
 
-USUARIOS REGISTRADOS ( ADMINISTRADOR )
+Método: PATCH
+Ruta: /users/forgottenPassword
+Descripción: Envía un código de reactivación a un usuario para restablecer la contraseña olvidada.
 
-<!-- REGISTRO DE UN NUEVO EJERCICIO
+4 Reactivación de Cuenta
 
-* POST '/exercises' *
+Método: PATCH
+Ruta: /users/reactivate_account
+Descripción: Permite reactivar una cuenta de usuario desactivada. Verifica el código de reactivación proporcionado y actualiza la contraseña de la cuenta.
 
-DEVUELVE INFO DE UN EJERCICIO CONCRETO
+5 Edición de Perfil de Usuario
 
-* GET '/exercises/:id' *
+Método: PATCH
+Ruta: /user/:userId/editProfile
+Descripción: Permite que un usuario edite su propio perfil. Los campos editables incluyen nombre, apellido, DNI, fecha de nacimiento (aaaa/mm/dd), correo electrónico, número de teléfono, contraseña y foto de perfil.
 
-MODIFICAR EJERCICIO(NAME.DESCRIPTION,LEVEL?,TYPOLOGY,MUSCLE GROUP)
+6 Deshabilitar Perfil de Usuario Propio
 
-* PUT '/exercises/:id'*
+Método: PATCH
+Ruta: /user/:userId/disableProfile
+Descripción: Deshabilita el perfil del propio usuario, estableciendo isEnabled en false en la base de datos.
 
-ELIMINAR EJERCICIO
+7 Eliminación Física de Perfil de Usuario (Solo Administradores)
 
-* DELETE '/exercises/:id'*
+Método: DELETE
+Ruta: /user/:userId/deleteProfile
+Descripción: Elimina físicamente el perfil de un usuario. Solo accesible para usuarios con rol de administrador.
 
-ELIMINAR USUARIO ???
+# ENDPOINTS RUTA EXERCISES
 
-* DELETE  '/users/:id * -->
+1 Crear un Ejercicio
 
+Método: POST
+Ruta: /exercises
+Descripción: Permite a un usuario administrador crear un nuevo ejercicio. Requiere nombre, descripción, nivel de dificultad, imagen, tipología y grupo muscular.
 
+2 Modificar un Ejercicio
 
+Método: PATCH
+Ruta: /exercises/:id
+Descripción: Permite a un usuario administrador modificar un ejercicio existente según su ID. Actualiza campos como nombre, descripción, nivel de dificultad, imagen, tipología y grupo muscular.
 
-USUARIOS REGISTRADOS ( NO ADMINISTRADOR )
+3 Eliminar un Ejercicio
 
-# OLVIDO DE CONTRASEÑA
+Método: DELETE
+Ruta: /exercises/:id
+Descripción: Permite a un usuario administrador eliminar un ejercicio existente según su ID.
 
-<!--
-Enviaremos un email con ese post para que nos envien un email de recuperacion.
+# ENDPOINTS RUTA FILTERS
 
-* POST '/users/password/recover' *
+1 Obtener Ejercicios (con filtros opcionales)
 
-Una vez recibimos el email de recuperacion, hacemos click en un enlace que nos lleva a la ruta donde introduciremos nuestra nueva password.
+Método: GET
+Ruta: /exercises/
+Descripción: Permite obtener ejercicios según filtros opcionales como grupo muscular, tipología y gustos del cliente. Si no se proporcionan filtros, devuelve todos los ejercicios ordenados por fecha de creación descendente.
 
- * PUT '/users/newPassword *
+2 Obtener Detalles de un Ejercicio
 
--->
+Método: GET
+Ruta: /exercises/:id
+Descripción: Obtiene detalles específicos de un ejercicio según su ID, asegurando que exista en la base de datos.
 
-# LOGEARTE
+3 Gestionar "Me Gusta" en un Ejercicio
 
-<!--
+Método: POST
+Ruta: /exercises/:id/likes
+Descripción: Permite a un usuario dar "Me Gusta" o eliminar el "Me Gusta" en un ejercicio específico.
 
-INICIAR SESION
+4 Gestionar Ejercicios Favoritos
 
-* POST '/users/login' *
+Método: POST
+Ruta: /exercises/:id/favourites
+Descripción: Permite a un usuario agregar o eliminar un ejercicio de sus favoritos.
 
-PAGINA INICIO
+5 Obtener Valores para el Filtro Frontend
 
-Devolvemos al usuario registrado su pagina principal mostrandole... ?
+Método: GET
+Ruta: /filter
+Descripción: Obtiene los valores necesarios para los filtros en el frontend, incluyendo grupos musculares, tipologías, likes, y niveles de dificultad.
 
-* GET '/users/:userId *
+6 Obtener Ejercicios Favoritos de un Usuario
 
--->
-
-# EDICIÓN DE PERFIL
-
-<!--
-
-El usuario puede añadir sus datos personales adicionales (FALTA CREAR TABLA ADICIONAL A USERS) a su perfil.
-
-* POST '/user/:userId/editProfile *
-
-El usuario puede cambiar sus datos personales adicionales
-
-* PUT '/user/:userId/editProfile *
-
-
- -->
-
-# PAGINA PRINCIPAL, BUSQUEDA DE EJERCICIOS
-
-<!--
-
-El usuario puede solicitar que le mostremos los ejercicios publicados.
-
-Serviría este mismo endpoint para realizar busquedas?
-Busqueda por palabra clave (incluida), tipologia y grupo muscular
-
-* GET '/exercises' *
-
-
-El usuario puede dar o quitar like a un ejercicio
-
-* POST '/exercises/:id/like' *
-
-
-
-El usuario puede añadir a favoritos un ejercicio
-
-* POST '/exercises/:id/favourites' *
-
-El usuario puede elminar de sus favoritos un ejercicio
-
-* DELETE '/exercises/:id/favourites' *
-
-
-
-El usuario puede crear un entrenamiento
-
-* 
-
-El usuario puede eliminar un entrenamiento
-
-*
-
-El usuario puede añadir un ejercicio a un entrenamiento
-
-*
-
-El usuario puede eliminar un ejercicio de un entrenamiento
-
-*
-
-El usuario puede acceder al listado de entrenamientos
-
-*
-
-El usuario puede acceder al entrenamiento concreto de ese listado
-
-*
-
-El usuario puede acceder al ejercicio concreto de un entrenamiento o un ejercicio del listado
-
-*
-
-
-
-
- -->
-
-
-# FILTRO
-
-
-<!-- 
-
-El usuario puede acceder al listado de tipologia
-
-*
-
-El usuario puede acceder al listado de grupos musculares
-
-*
-
-
-
- -->
-
-# PAGINA PRINCIPAL, MOSTRAR FAVORITOS
-
- <!-- 
- 
- El usuario puede veer lista de favoritos
-
- * GET '/favourites/:id'
- 
-  -->
-
-
-
-# INSTALAR PRETTIER Y ESLINT COMO EXTENSIONES DE VSCODE
-
-<!-- EN LA CARPETA DEL PROYECTO INSTALAR : -->
-
-npm install -D eslint prettier
-
-<!-- CONFIGURAR ESLINT ESCRIBIENDO EN LA CONSOLA : -->
-
-npx eslint --init
-
-<!-- SI PREGUNTA POR INSTALAR UN PAQUETE "@eslint/create-config@..." -->
-
-le damos a sí (Y)
-
-<!-- RESPONDEMOS A LAS SIGUIENTES PREGUNTAS DE CONFIGURACION : -->
-
-√ How would you like to use ESLint? · LA OPCION DEL MEDIO
-√ What type of modules does your project use? · esm
-√ Which framework does your project use? · none
-√ Does your project use TypeScript? · No / Yes
-√ Where does your code run? · node (HAY QUE DESHABILITAR LA OPCION PRIMERA PULSANDO ESPACIO Y HABILITANDO NODE DEL MISMO MODO)
-√ What format do you want your config file to be in? · JSON
-
-<!-- HAY QUE ESCRIBIR LA SIGUIENTE LINEA EN EL ARCHIVO .eslintrc.json dentro de RULES, DE TAL MODO QUE QUEDE ASI: -->
-
-"rules": {
-        "no-unused-vars": ["error", {"argsIgnorePatterns": "next" }]
-    }
-
-<!-- CREAMOS UN ARCHIVO .prettierrc.json EN LA CARPETA DEL PROYECTO (EN CASO DE QUE TANTO ESLINTRC Y PRETTIERRC NO SE SUBAN AL REPO) Y AÑADIR LO SIGUIENTE (ESTO ES A GUSTO DE BERTO, SE PUEDE PERSONALIZAR)-->
-
-{
-
-    "trailingComma": "es5",
-    "tabWidth": 2,
-    "semi": true,
-    "singleQuote": true
-}
+Método: GET
+Ruta: /favourites
+Descripción: Permite a un usuario obtener una lista de sus ejercicios favoritos.
