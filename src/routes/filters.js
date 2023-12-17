@@ -2,8 +2,10 @@ import "dotenv/config.js";
 import express from "express";
 import { db } from "../db/db-connection.js";
 import { wrapWithCatch } from "../utils/wrap-with-catch.js";
+
 import { authMiddleware } from "../middlewares/auth.js";
 import { loggedInGuard } from "../middlewares/logged-in-guard.js";
+
 import {
     checkExercise,
     checkLikeAndFavourite,
@@ -13,8 +15,10 @@ import { DIFFICULTY_LEVEL } from "../constants.js";
 
 const router = express.Router();
 
+
 router.use(authMiddleware);
 router.use(loggedInGuard);
+
 
 router.get(
     "/exercises/",

@@ -9,6 +9,7 @@ import { wrapWithCatch } from "../utils/wrap-with-catch.js";
 import { authMiddleware } from "../middlewares/auth.js";
 import { loggedInGuard } from "../middlewares/logged-in-guard.js";
 import {
+
     throwErrorEmailRequired,
     throwErrorNameRequired,
     throwErrorPasswordRequired,
@@ -21,17 +22,19 @@ import {
     throwUnauthorizedError,
     throwErrorUserNotDeleted,
     throwErrorOneFieldsRequired,
+
 } from "../utils/errors.js";
 import fileUpload from "express-fileupload";
 
 const router = express.Router();
 
 function generateReactivationCode() {
-    const code = Math.floor(Math.random() * 9999) + 1000;
-    return code.toString(); // Convierte el número en una cadena de texto
+  const code = Math.floor(Math.random() * 9999) + 1000;
+  return code.toString(); // Convierte el número en una cadena de texto
 }
 
 router.post(
+
     "/users/register",
     wrapWithCatch(async (req, res) => {
         let { email, password, name } = req.body;
@@ -76,6 +79,7 @@ router.post(
             throwErrorEmailInUse();
         }
     })
+
 );
 
 // --------------------------------
@@ -83,6 +87,7 @@ router.post(
 // --------------------------------
 
 router.post(
+
     "/users/login",
     wrapWithCatch(async (req, res) => {
         const { email, password } = req.body;
@@ -210,6 +215,7 @@ router.patch(
             throwErrorInvalidVerification();
         }
     })
+
 );
 
 router.use(authMiddleware);
@@ -217,6 +223,7 @@ router.use(loggedInGuard);
 // EDITAR PERFIL
 
 router.patch(
+
     "/user/:userId/editProfile",
     wrapWithCatch(async (req, res, next) => {
         // Obtener datos user desde parametro url
@@ -364,11 +371,13 @@ router.patch(
 
         res.status(200).json({ message: "Profile updated successfully" });
     })
+
 );
 
 // DESHABILITAR EL PROPIO PERFIL POR EL USUARIO
 
 router.patch(
+
     "/user/:userId/disableProfile",
     wrapWithCatch(async (req, res) => {
         // Obtener datos user desde parametro url
@@ -388,11 +397,13 @@ router.patch(
             message: "Your profile has been disabled successfully",
         });
     })
+
 );
 
 // ELIMINACIÓN FISICA DE USUARIO (SOLO ADMINISTRADORES)
 
 router.delete(
+
     "/user/:userId/deleteProfile",
     wrapWithCatch(async (req, res, next) => {
         const currentUser = req.currentUser;
@@ -420,6 +431,7 @@ router.delete(
 
         res.status(200).json({ message: "Profile deleted successfully" });
     })
+
 );
 
 export default router;

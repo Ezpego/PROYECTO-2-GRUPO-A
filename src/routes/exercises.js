@@ -7,10 +7,12 @@ import { loggedInGuard } from "../middlewares/logged-in-guard.js";
 import { wrapWithCatch } from "../utils/wrap-with-catch.js";
 import { UploadFiles } from "../utils/UploadFiles.js";
 import {
+
     throwErrorExerciseDoesNotExist,
     throwErrorNameExerciseExist,
     throwErrorNotAdmin,
     throwErrorSomeInformationAreRequired,
+
 } from "../utils/errors.js";
 
 const router = express.Router();
@@ -19,6 +21,7 @@ router.use(loggedInGuard);
 router.use(fileUpload());
 
 router.post(
+
     "/exercises",
     wrapWithCatch(async (req, res) => {
         // Obtenemos info del usuario actual logeado
@@ -83,11 +86,13 @@ router.post(
 
         res.status(201).json({ message: "Exercise created successfully" });
     })
+
 );
 
 // MODIFICAR UN EJERCICIO
 
 router.patch(
+
     "/exercises/:id",
     wrapWithCatch(async (req, res) => {
         // Obtenemos info del usuario actual logeado
@@ -179,11 +184,13 @@ router.patch(
 
         res.status(201).json({ message: "Exercise updated successfully" });
     })
+
 );
 
 // ELIMINAR UN EJERCICIO
 
 router.delete(
+
     "/exercises/:id",
     wrapWithCatch(async (req, res) => {
         // Obtenemos info del usuario actual logeado
@@ -208,6 +215,7 @@ router.delete(
 
         res.status(201).json({ message: "Exercise deleted successfully" });
     })
+
 );
 
 export default router;

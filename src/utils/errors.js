@@ -7,6 +7,7 @@ export function throwErrorExerciseDoesNotExist() {
 }
 
 export function throwUnauthorizedError() {
+
     throw {
         httpStatus: 401,
         error: "UNAUTHORIZED",
@@ -116,17 +117,20 @@ export function throwErrorUserNotDeleted() {
         error: "User could not be deleted",
         message: "User could not be deleted",
     };
+
 }
 
 //---------------------
 //--------------------
 
 export function throwErrorFavouritesDoesNotExist() {
+
     throw {
         httpStatus: 401,
         error: "FavouritesDoesNotExist",
         message: "Exercise does not exixt",
     };
+
 }
 
 export function throwErrorFilterDoesNotExist() {
