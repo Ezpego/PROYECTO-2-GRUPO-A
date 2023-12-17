@@ -19,9 +19,6 @@ export async function checkExercise(req, res, next) {
     next();
 }
 
-import { throwErrorExerciseDoesNotExist } from "../utils/errors.js";
-import { db } from "../db/db-connection.js";
-
 export async function checkLikeAndFavourite(req, res, next) {
     const id = req.params.id;
     const pathSegments = req.path.split("/");
