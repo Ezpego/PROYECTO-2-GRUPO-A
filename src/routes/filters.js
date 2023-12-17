@@ -1,22 +1,9 @@
 import "dotenv/config.js";
 import express from "express";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import { db } from "./db/db-connection.js";
-import { PORT, SERVER_HOST } from "./constants.js";
-import { authMiddleware } from "./middlewares/auth.js";
-import { loggedInGuard } from "./middlewares/logged-in-guard.js";
-import { sendRegisterConfirmation } from "./utils/send-register-confirmation.js";
-import { wrapWithCatch } from "./utils/wrap-with-catch.js";
-import fileUpload from "express-fileupload";
-import path from "path";
-import crypto from "crypto";
-import { PUBLIC_DIR } from "./constants.js";
-import { UploadFiles } from "./utils/UploadFiles.js";
-import { profile } from "console";
-import filtersRoute from "./rutas/filters.js";
-import authMiddlewa from "../middlewares/auth.js";
-import loggedInGuard from "../middlewares/logged-in-guard.js";
+import { db } from "../db/db-connection.js";
+import { wrapWithCatch } from "../utils/wrap-with-catch.js";
+import {authMiddleware} from "../middlewares/auth.js";
+import {loggedInGuard} from "../middlewares/logged-in-guard.js";
 import {
     checkExercise,
     checkLikeAndFavourite,
@@ -24,8 +11,8 @@ import {
 
 const router = express.Router();
 
-router.use(authMiddlewa);
-router.use(loggedInGuard);
+// router.use(authMiddleware);
+// router.use(loggedInGuard);
 
 router.get(
     "/exercise/",
