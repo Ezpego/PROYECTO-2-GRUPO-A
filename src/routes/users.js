@@ -130,12 +130,18 @@ router.post(
       {
         id: isUser.id,
         name: isUser.name,
+        isAdministrator: isUser.isAdministrator,
       },
       process.env.JWT_SECRET,
       {
         expiresIn: "7d",
       }
     );
+    // *INTRODUCIMOS EL TOKEN GENERADO EN LA NUEVA COLUMNA CREADA EN LA TABLA USERS (current_token)
+    await db.execute(
+      "UPDATE users SET current_token = ? WHERE email = ?",
+      [token, isUser.email]
+    )
 
     res.status(200).json({ token });
     return;
@@ -162,7 +168,7 @@ router.patch(
       email,
     ]);
 
-    await sendRegisterConfirmation(reactivationCode, email);
+    // await sendRegisterConfirmation(reactivationCode, email);
     res.status(200).json({
       message: "Reactivation code sent successfully",
     });
@@ -200,7 +206,28 @@ router.patch(
         `UPDATE users SET password = ?, isEnabled = TRUE WHERE email= ?`,
         [hashedPassword, email]
       );
+
+//* GENERAMOS UN NUEVO TOKEN DESPUÉS DE CAMBIAR LA CONTRASEÑA
+const newToken = jwt.sign(
+  {
+    id: currentUser.id,
+    name: currentUser.name,
+    isAdministrator: currentUser.isAdministrator,
+  },
+  process.env.JWT_SECRET,
+  {
+    expiresIn: '7d',
+  }
+);
+
+//* ACTUALIZAMOS TOKEN ACTUAL 
+await db.execute(
+  `UPDATE users SET current_token = ? WHERE email = ?`,
+  [newToken, currentUser.email]
+);
+
       res.status(200).json({
+        newToken,
         message: "Account reactivated successfully",
       });
     } else {
@@ -219,9 +246,10 @@ router.patch(
   wrapWithCatch(async (req, res, next) => {
     // Obtener datos user desde parametro url
     const userId = parseInt(req.params.userId);
-    console.log(userId);
+    // console.log(userId);
     const currentUser = req.currentUser;
-    console.log(currentUser.id);
+    console.log('currentUser:', currentUser);
+    let newToken;
     if (currentUser.id !== userId) {
       throwUnauthorizedError();
     }
@@ -230,7 +258,7 @@ router.patch(
     let { name, last_name, dni, birth_date, email, phone_number, password } =
       req.body;
     const profilePhoto = req.files?.photo;
-    console.log(profilePhoto);
+    // console.log(profilePhoto);
     const address = "profile";
     let profile_image_url;
     // Validar los datos actualizados, asegurarse de que al menos uno de ellos sea no nulo
@@ -320,6 +348,21 @@ router.patch(
       const hashedPassword = await bcrypt.hash(password, 12);
       updateQuery += "password = ?, ";
       updateValues.push(hashedPassword);
+      newToken = jwt.sign(
+        {
+          id: currentUser.id,
+          name: currentUser.name,
+          isAdministrator: currentUser.isAdministrator,
+        },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: '7d',
+        }
+      );
+
+      updateQuery += "current_token = ?, ";
+      updateValues.push(newToken);
+
     }
     if (profilePhoto) {
       const [[existingOldUrl]] = await db.execute(
@@ -345,7 +388,9 @@ router.patch(
 
     await db.execute(updateQuery, updateValues);
 
-    res.status(200).json({ message: "Profile updated successfully" });
+    res.status(200).json({ 
+      newToken,
+      message: "Profile updated successfully" });
   })
 );
 
