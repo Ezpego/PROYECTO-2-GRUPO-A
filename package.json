@@ -6,7 +6,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon ./src/app.js"
-
   },
   "keywords": [],
   "author": "",
@@ -18,8 +17,8 @@
     "eslintrc": "^1.0.6",
     "express": "^4.18.2",
     "express-fileupload": "^1.4.3",
-    "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.6.5",
+    "cors": "^2.8.5",
     "nodemailer": "^6.9.7",
     "path": "^0.12.7"
   },
