@@ -818,7 +818,8 @@ router.use(fileUpload());
 // RUTA AÑADIDA PARA TRAER DATOS DE UN USUARIO, SOLO ADMIN
 // *AÑADIDA 06.02.24
 
-router.get("/users/dataByEmail", wrapWithCatch(async (req, res) => {
+router.get("/users/dataByEmail", 
+wrapWithCatch(async (req, res) => {
   const email = req.query.email;
   const token = req.headers.authorization;
 
@@ -828,11 +829,9 @@ router.get("/users/dataByEmail", wrapWithCatch(async (req, res) => {
       [token]
     );
 
-    if (!adminUserFromDatabase) {
-      throwErrorUserNotFound();
-    }
-
-    if (adminUserFromDatabase.isAdministrator === '1') {
+    if (adminUserFromDatabase.isAdministrator !== '1') {
+      throwUnauthorizedError();
+    } else {
       const [[userFromDatabase]] = await db.execute(
         "SELECT * FROM users WHERE email = ? LIMIT 1",
         [email]
@@ -843,22 +842,20 @@ router.get("/users/dataByEmail", wrapWithCatch(async (req, res) => {
       }
 
       const userData = {
-        id: adminUserFromDatabase.id,
-        name: adminUserFromDatabase.name,
-        last_name: adminUserFromDatabase.last_name,
-        dni: adminUserFromDatabase.dni,
-        email: adminUserFromDatabase.email,
-        birth_date: adminUserFromDatabase.birth_date,
-        phone_number: adminUserFromDatabase.phone_number,
-        profile_image_url: adminUserFromDatabase.profile_image_url,
-        isAdministrator: adminUserFromDatabase.isAdministrator,
-        isEnabled: adminUserFromDatabase.isEnabled,
-        current_token: adminUserFromDatabase.current_token,
+        id: userFromDatabase.id,
+        name: userFromDatabase.name,
+        last_name: userFromDatabase.last_name,
+        dni: userFromDatabase.dni,
+        email: userFromDatabase.email,
+        birth_date: userFromDatabase.birth_date,
+        phone_number: userFromDatabase.phone_number,
+        profile_image_url: userFromDatabase.profile_image_url,
+        isAdministrator: userFromDatabase.isAdministrator,
+        isEnabled: userFromDatabase.isEnabled,
+        current_token: userFromDatabase.current_token,
       };
 
       res.json(userData);
-    } else {
-      throwUnauthorizedError();
     }
   } catch (error) {
     console.error("Error al buscar el usuario por email:", error);
