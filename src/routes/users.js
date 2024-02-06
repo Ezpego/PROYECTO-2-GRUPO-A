@@ -771,7 +771,8 @@ router.patch(
 // * RUTA PARA DEVOLVER DATOS DE UN USUARIO CONCRETO
 // * RUTA AÑADIDA EZEQUIEL
 
-router.get("/users/data", async (req, res) => {
+router.get("/users/data",
+ wrapWithCatch(async (req, res) => {
   // USAMOS EL SPLIT PARA SEPARAR EL TOKEN DE LA PALABRA BEARER DEL HEADER/AUTH
   const token = req.headers.authorization;
 
@@ -807,11 +808,63 @@ router.get("/users/data", async (req, res) => {
     console.error("Error al verificar el token:", error);
     res.status(401).json({ error: "Token inválido" });
   }
-});
+}));
 
 router.use(authMiddleware);
 router.use(loggedInGuard);
 router.use(fileUpload());
+
+
+// RUTA AÑADIDA PARA TRAER DATOS DE UN USUARIO, SOLO ADMIN
+// *AÑADIDA 06.02.24
+
+router.get("/users/dataByEmail", wrapWithCatch(async (req, res) => {
+  const email = req.query.email;
+  const token = req.headers.authorization;
+
+  try {
+    const [[adminUserFromDatabase]] = await db.execute(
+      "SELECT * FROM users WHERE current_token = ? LIMIT 1",
+      [token]
+    );
+
+    if (!adminUserFromDatabase) {
+      throwErrorUserNotFound();
+    }
+
+    if (adminUserFromDatabase.isAdministrator === '1') {
+      const [[userFromDatabase]] = await db.execute(
+        "SELECT * FROM users WHERE email = ? LIMIT 1",
+        [email]
+      );
+
+      if (!userFromDatabase) {
+        throwErrorUserNotFound();
+      }
+
+      const userData = {
+        id: adminUserFromDatabase.id,
+        name: adminUserFromDatabase.name,
+        last_name: adminUserFromDatabase.last_name,
+        dni: adminUserFromDatabase.dni,
+        email: adminUserFromDatabase.email,
+        birth_date: adminUserFromDatabase.birth_date,
+        phone_number: adminUserFromDatabase.phone_number,
+        profile_image_url: adminUserFromDatabase.profile_image_url,
+        isAdministrator: adminUserFromDatabase.isAdministrator,
+        isEnabled: adminUserFromDatabase.isEnabled,
+        current_token: adminUserFromDatabase.current_token,
+      };
+
+      res.json(userData);
+    } else {
+      throwUnauthorizedError();
+    }
+  } catch (error) {
+    console.error("Error al buscar el usuario por email:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+}));
 
 // RUTA PARA COMPROBAR CONTRASEÑA
 // *AÑADIDA 31.24
