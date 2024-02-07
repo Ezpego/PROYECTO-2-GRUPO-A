@@ -164,7 +164,7 @@ router.patch(
         if (muscle_group) {
             await db.execute(
                 `UPDATE muscle_group_selection SET muscle_group_id = ? WHERE exercises_id = ?`,
-                [muscle_group, exerciseId]
+                [Number(muscle_group), exerciseId]
             );
         }
 
