@@ -34,6 +34,7 @@ CREATE TABLE users (
         ) NOT NULL,
     phone_number VARCHAR(20),
     profile_image_url VARCHAR(200),
+    current_token VARCHAR(255),
     isEnabled BOOLEAN DEFAULT TRUE,
     isAdministrator BOOLEAN DEFAULT FALSE,
     reactivation_code VARCHAR(10),
