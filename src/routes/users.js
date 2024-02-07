@@ -829,7 +829,7 @@ wrapWithCatch(async (req, res) => {
       [token]
     );
 
-    if (adminUserFromDatabase.isAdministrator !== '1') {
+    if (adminUserFromDatabase.isAdministrator !== 1){
       throwUnauthorizedError();
     } else {
       const [[userFromDatabase]] = await db.execute(
