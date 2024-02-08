@@ -531,6 +531,8 @@
 // export default router;
 
 import "dotenv/config.js";
+import { join} from 'path';
+import fs from 'fs/promises';
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -1105,6 +1107,77 @@ router.delete(
     }
 
     res.status(200).json({ message: "Profile deleted successfully" });
+  })
+);
+
+
+// RUTA PARA ELIMINAR FOTO DE PERFIL 
+// *AÑADIDA EZEQUIEL 08.02.24
+
+
+
+
+router.delete(
+  '/users/:userId/deleteProfilePhoto',
+  wrapWithCatch(async (req, res, next) => {
+    const currentUser = req.currentUser;
+    const userId = req.params.userId;
+    console.log('CURRENCITO USERCITO', currentUser);
+
+    if (!currentUser) {
+      throwUnauthorizedError();
+    }
+
+    console.log('USERCITO IDECITO', userId);
+
+    const [userData] = await db.execute('SELECT * FROM users WHERE id = ?', [userId]);
+    console.log('DATITAUSERCITO', userData)
+
+    if (!userData || userData.length === 0) {
+      throwErrorUserNotFound();
+    }
+
+    const userProfileImage = userData[0].profile_image_url;
+
+    if (!userProfileImage) {
+      console.error('No se encontró la URL de la foto de perfil.');
+      res.status(400).json({ error: 'No se encontró la URL de la foto de perfil.' });
+      return;
+    }
+
+    try {
+      const urlParts = new URL(userProfileImage);
+      const fileName = urlParts.pathname.split('/').pop(); 
+
+      const currentWorkingDirectory = process.cwd();
+      console.log('WORKINCITO DIRECTORY', currentWorkingDirectory)
+
+      const dynamicBasePath = join(currentWorkingDirectory, 'public', 'profile');
+    
+      const pathToDelete = join(dynamicBasePath, fileName);
+      console.log('PATHECITO TO DELETECITO', pathToDelete);
+
+    
+      const fileExists = await fs.access(pathToDelete).then(() => true).catch(() => false);
+    
+      if (fileExists) {
+        try {
+          await fs.unlink(pathToDelete);
+          await db.execute('UPDATE users SET profile_image_url = null WHERE id = ?', [userId]);
+          console.log('File deleted successfully');
+          res.status(200).json({ message: 'Profile photo deleted successfully' });
+        } catch (error) {
+          console.error('Error deleting file:', error);
+          res.status(500).json({ error: 'Error deleting file' });
+        }
+      } else {
+        console.error('El archivo no existe en la ruta especificada.');
+        res.status(404).json({ error: 'El archivo no existe en la ruta especificada.' });
+      }
+    } catch (error) {
+      console.error('Error parsing URL:', error);
+      res.status(500).json({ error: 'Error parsing URL' });
+    }
   })
 );
 
