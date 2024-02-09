@@ -992,8 +992,8 @@ router.patch(
 
         if (email) {
             const [[existingUserWithEmail]] = await db.execute(
-                "SELECT * FROM users WHERE email = ?",
-                [email]
+                "SELECT * FROM users WHERE email = ? AND id !=?",
+                [email, userId]
             );
 
             if (
@@ -1071,7 +1071,6 @@ router.patch(
         });
     })
 );
-
 // DESHABILITAR EL PROPIO PERFIL POR EL USUARIO
 
 router.patch(
