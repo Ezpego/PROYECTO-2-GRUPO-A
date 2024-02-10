@@ -12,6 +12,7 @@ const app = express();
 const jsonParser = express.json();
 app.use(cors());
 
+
 app.use(express.json());
 app.use(jsonParser);
 const staticFileHandler = express.static(PUBLIC_DIR);
