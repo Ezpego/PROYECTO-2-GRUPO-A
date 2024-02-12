@@ -930,6 +930,8 @@ router.patch(
             email,
             phone_number,
             password,
+            isAdministrator,
+            isEnabled,
         } = req.body;
         const profilePhoto = req.files?.photo;
         // console.log(profilePhoto);
@@ -958,12 +960,14 @@ router.patch(
                 email ||
                 phone_number ||
                 profilePhoto ||
-                password
+                password ||
+                isAdministrator ||
+                isEnabled
             )
         ) {
             throwErrorOneFieldsRequired();
         }
-
+        console.log(req.body);
         // Construir la consulta de actualización según los datos proporcionados
         let updateQuery = "UPDATE users SET ";
         let updateValues = [];
@@ -985,7 +989,7 @@ router.patch(
             updateValues.push(dni);
         }
 
-        if (birth_date) {
+        if (birth_date && birth_date !== " ") {
             updateQuery += "birth_date = ?, ";
             updateValues.push(birth_date);
         }
@@ -1057,6 +1061,44 @@ router.patch(
                 updateValues.push(profile_image_url);
             }
         }
+        if (
+            isEnabled === true ||
+            isEnabled === "true" ||
+            isEnabled === 1 ||
+            isEnabled === "1"
+        ) {
+            console.log("isEnabled", isEnabled);
+            updateQuery += "isEnabled = ?, ";
+            updateValues.push(1);
+            console.log("valor", updateValues);
+            console.log("query", updateQuery);
+        } else {
+            console.log("isEnabled", isEnabled);
+            updateQuery += "isEnabled = ?, ";
+            updateValues.push(0);
+            console.log("valor", updateValues);
+            console.log("query", updateQuery);
+        }
+
+        if (
+            isAdministrator === true ||
+            isAdministrator === "true" ||
+            isAdministrator === 1 ||
+            isAdministrator === "1"
+        ) {
+            console.log("isAdministrator", isAdministrator);
+            updateQuery += "isAdministrator = ?, ";
+            updateValues.push(1);
+            console.log("valor", updateValues);
+            console.log("query", updateQuery);
+        } else {
+            console.log("isAdministrator", isAdministrator);
+            updateQuery += "isAdministrator = ?, ";
+            updateValues.push(0);
+            console.log("valor", updateValues);
+            console.log("query", updateQuery);
+        }
+
         updateQuery = updateQuery.slice(0, -2);
 
         updateQuery += " WHERE id = ?";
