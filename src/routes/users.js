@@ -930,6 +930,174 @@ router.patch(
             email,
             phone_number,
             password,
+        } = req.body;
+        console.log(req.body);
+        const profilePhoto = req.files?.photo;
+        // console.log(profilePhoto);
+        const address = "profile";
+        let profile_image_url;
+        // Validar los datos actualizados, asegurarse de que al menos uno de ellos sea no nulo
+
+        if (name) {
+            name = name.trim();
+        }
+
+        if (email) {
+            email = email.trim();
+        }
+
+        if (password) {
+            password = password.trim();
+        }
+
+        if (
+            !(
+                name ||
+                last_name ||
+                dni ||
+                birth_date ||
+                email ||
+                phone_number ||
+                profilePhoto ||
+                password
+            )
+        ) {
+            throwErrorOneFieldsRequired();
+        }
+        console.log(req.body);
+        // Construir la consulta de actualización según los datos proporcionados
+        let updateQuery = "UPDATE users SET ";
+        let updateValues = [];
+
+        if (name) {
+            name = name.trim();
+
+            updateQuery += "name = ?, ";
+            updateValues.push(name);
+        }
+
+        if (last_name) {
+            updateQuery += "last_name = ?, ";
+            updateValues.push(last_name);
+        }
+
+        if (dni) {
+            updateQuery += "dni = ?, ";
+            updateValues.push(dni);
+        }
+
+        if (birth_date && birth_date !== " ") {
+            updateQuery += "birth_date = ?, ";
+            updateValues.push(birth_date);
+        }
+
+        if (email) {
+            const [[existingUserWithEmail]] = await db.execute(
+                "SELECT * FROM users WHERE email = ? AND id !=?",
+                [email, userId]
+            );
+
+            if (
+                existingUserWithEmail &&
+                existingUserWithEmail.email === email
+            ) {
+                throwErrorEmailInUse();
+            }
+            updateQuery += "email = ?, ";
+            updateValues.push(email);
+        }
+
+        if (phone_number) {
+            updateQuery += "phone_number = ?, ";
+            updateValues.push(phone_number);
+        }
+
+        if (password) {
+            password = password.trim();
+
+            if (
+                !password ||
+                password.length < 8 ||
+                !/[A-Z]/.test(password) ||
+                !/[0-9]/.test(password)
+            ) {
+                throwErrorPasswordRequirements();
+            }
+            const hashedPassword = await bcrypt.hash(password, 12);
+            updateQuery += "password = ?, ";
+            updateValues.push(hashedPassword);
+            newToken = jwt.sign(
+                {
+                    id: currentUser.id,
+                    name: currentUser.name,
+                    isAdministrator: currentUser.isAdministrator,
+                },
+                process.env.JWT_SECRET,
+                {
+                    expiresIn: "7d",
+                }
+            );
+
+            updateQuery += "current_token = ?, ";
+            updateValues.push(newToken);
+        }
+        if (profilePhoto) {
+            console.log("Uploading profile photo...");
+            const [[existingOldUrl]] = await db.execute(
+                "SELECT profile_image_url FROM users WHERE id = ?",
+                [currentUser.id]
+            );
+            profile_image_url = await UploadFiles(
+                profilePhoto,
+                address,
+                existingOldUrl.profile_image_url
+            );
+
+            if (profile_image_url) {
+                updateQuery += "profile_image_url = ?, ";
+                updateValues.push(profile_image_url);
+            }
+        }
+
+        updateQuery = updateQuery.slice(0, -2);
+
+        updateQuery += " WHERE id = ?";
+
+        updateValues.push(userId);
+
+        await db.execute(updateQuery, updateValues);
+
+        res.status(200).json({
+            newToken,
+            message: "Profile updated successfully",
+        });
+    })
+);
+
+//EDITAR PERFILES DESDE EL ADMINISTRADOR
+
+router.patch(
+    "/userGestion/:userId/editProfile",
+    wrapWithCatch(async (req, res, next) => {
+        // Obtener datos user desde parametro url
+        const userId = parseInt(req.params.userId);
+        console.log(userId);
+        const currentUser = req.currentUser;
+        console.log("currentUser:", currentUser);
+        let newToken;
+        if (currentUser.isAdministrator !== 1) {
+            throwUnauthorizedError();
+        }
+
+        // Obtener los datos actualizados del cuerpo de la solicitud
+        let {
+            name,
+            last_name,
+            dni,
+            birth_date,
+            email,
+            phone_number,
+            password,
             isAdministrator,
             isEnabled,
         } = req.body;
