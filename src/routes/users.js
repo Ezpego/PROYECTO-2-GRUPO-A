@@ -933,6 +933,7 @@ router.patch(
             isAdministrator,
             isEnabled,
         } = req.body;
+        console.log(req.body);
         const profilePhoto = req.files?.photo;
         // console.log(profilePhoto);
         const address = "profile";
@@ -1065,7 +1066,8 @@ router.patch(
             isEnabled === true ||
             isEnabled === "true" ||
             isEnabled === 1 ||
-            isEnabled === "1"
+            isEnabled === "1" ||
+            isEnabled === undefined
         ) {
             console.log("isEnabled", isEnabled);
             updateQuery += "isEnabled = ?, ";
